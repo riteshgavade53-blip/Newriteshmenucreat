@@ -33,7 +33,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-500">
-              Aapko extracted Petpooja menu kis bhasha me chahiye? Niche se apni language select karein:
+              Aapko extracted POS menu kis bhasha me chahiye? Niche se apni language select karein:
             </p>
           </div>
         </div>
@@ -112,7 +112,7 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({
           <strong className="text-emerald-700 font-bold">
             {currentLang.label} ({currentLang.nativeLabel})
           </strong>{' '}
-          and formatted into standard 11 Petpooja columns.
+          and formatted into standard 11 POS columns.
         </span>
         {selectedLanguage !== 'english' && (
           <button

@@ -1,9 +1,9 @@
 import { SavedMenu, SiteStats, MenuItemRow, MenuOutputLanguage } from '../types';
 import * as XLSX from 'xlsx';
 
-const STORAGE_SAVED_MENUS_KEY = 'petpooja_saved_menus_v1';
-const STORAGE_STATS_KEY = 'petpooja_site_stats_v1';
-const STORAGE_VISITOR_ID_KEY = 'petpooja_visitor_uuid_v1';
+const STORAGE_SAVED_MENUS_KEY = 'pos_saved_menus_v1';
+const STORAGE_STATS_KEY = 'pos_site_stats_v1';
+const STORAGE_VISITOR_ID_KEY = 'pos_visitor_uuid_v1';
 
 // Generate or retrieve persistent visitor UUID
 export function getOrCreateVisitorId(): { visitorId: string; isNew: boolean } {
@@ -261,11 +261,11 @@ export function exportSavedMenuToExcel(menu: SavedMenu): void {
   worksheet['!cols'] = colWidths;
 
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Petpooja_Menu');
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'POS_Menu');
 
   const cleanName = (menu.restaurantName || 'Menu')
     .replace(/[^a-zA-Z0-9_-]/g, '_')
     .toLowerCase();
   const dateStr = new Date(menu.createdAt).toISOString().split('T')[0];
-  XLSX.writeFile(workbook, `petpooja_${cleanName}_${dateStr}.xlsx`);
+  XLSX.writeFile(workbook, `menu_${cleanName}_${dateStr}.xlsx`);
 }

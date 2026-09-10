@@ -74,35 +74,41 @@ export default function App() {
     setHasUserKey(Boolean(getStoredUserApiKey()));
   };
 
-  // Extract from File (PDF, Image, Word, Excel)
-  const handleExtractFile = async (file: File) => {
+  // Extract from Multiple Files or Single File (Images, PDF, Word, Excel)
+  const handleExtractFiles = async (files: File[]) => {
+    if (!files || files.length === 0) return;
     setIsLoading(true);
     setError(null);
-    setLoadingStep('Uploading and reading menu file...');
+    setLoadingStep(`Processing ${files.length} menu file(s) with Fast Gemini AI...`);
 
     try {
       const res = await extractMenuData({
-        file,
+        files,
         outputLanguage,
         onStatusUpdate: (status) => setLoadingStep(status),
       });
 
       if (res.items && res.items.length > 0) {
-        const extractedRestaurantName = res.restaurantName || file.name.replace(/\.[^/.]+$/, '');
+        const firstFileName = files[0].name.replace(/\.[^/.]+$/, '');
+        const extractedRestaurantName =
+          res.restaurantName ||
+          (files.length > 1 ? `${firstFileName} (+${files.length - 1} pages)` : firstFileName);
         const extractedCurrency = res.currency || 'INR';
 
         setRows(res.items);
         setRestaurantName(extractedRestaurantName);
         setCurrency(extractedCurrency);
 
-        showToast(`✅ "${extractedRestaurantName}" (${res.items.length} items) extracted in ${outputLanguage.toUpperCase()}!`);
+        showToast(
+          `✅ "${extractedRestaurantName}" (${res.items.length} items from ${files.length} file(s)) extracted in ${outputLanguage.toUpperCase()}!`
+        );
 
         // Smooth scroll to table
         setTimeout(() => {
           tableSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 150);
       } else {
-        throw new Error('No menu items could be extracted. Please ensure the file contains legible menu text or tables.');
+        throw new Error('No menu items could be extracted. Please ensure the files contain legible menu text or tables.');
       }
     } catch (err: any) {
       setError(err?.message || 'Failed to extract menu.');
@@ -116,7 +122,7 @@ export default function App() {
   const handleExtractText = async (text: string) => {
     setIsLoading(true);
     setError(null);
-    setLoadingStep('Gemini 2.5 Flash formatting text into Petpooja 11 columns...');
+    setLoadingStep('Fast AI formatting text into 11-column POS format...');
 
     try {
       const res = await extractMenuData({
@@ -265,7 +271,7 @@ export default function App() {
 
         {/* Step 2: Upload & Extraction Zone (PDF, Images, Word, Excel, Text) */}
         <UploadZone
-          onExtractFile={handleExtractFile}
+          onExtractFiles={handleExtractFiles}
           onExtractText={handleExtractText}
           isLoading={isLoading}
           loadingStep={loadingStep}
@@ -283,7 +289,7 @@ export default function App() {
           />
         )}
 
-        {/* Petpooja Data Table */}
+        {/* Menu Data Table */}
         <div ref={tableSectionRef}>
           <MenuTable
             rows={rows}
@@ -304,7 +310,7 @@ export default function App() {
           <div className="flex items-center gap-2 mb-3">
             <ShieldCheck className="w-5 h-5 text-emerald-600" />
             <h3 className="font-bold text-sm text-slate-900">
-              Petpooja POS 11-Column Format Standard Compliance
+              Standard POS 11-Column Format Compliance
             </h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs text-slate-600">
@@ -322,7 +328,7 @@ export default function App() {
             </div>
             <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
               <span className="font-bold text-slate-800 block">4. Excel (.xlsx) & CSV</span>
-              Export generated directly with SheetJS in UTF-8 format ready for Petpooja admin portal bulk upload.
+              Export generated directly with SheetJS in UTF-8 format ready for POS admin portal bulk upload.
             </div>
           </div>
         </div>

@@ -40,11 +40,11 @@ export const Header: React.FC<HeaderProps> = ({
                 </h1>
                 <span className="hidden md:inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">
                   <FileSpreadsheet className="w-3 h-3 text-emerald-600" />
-                  Petpooja POS 11-Cols
+                  11-Column POS Format
                 </span>
               </div>
               <p className="text-xs text-slate-500 hidden sm:block">
-                Extract items, variations & prices into Petpooja Excel format via Gemini AI
+                Extract items, variations & prices into POS Excel format via Gemini AI
               </p>
             </div>
           </div>

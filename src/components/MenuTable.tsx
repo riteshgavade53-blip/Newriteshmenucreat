@@ -17,7 +17,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { MenuItemRow, DietaryType, MenuOutputLanguage, SUPPORTED_LANGUAGES } from '../types';
-import { exportToExcel, exportToCsv, copyToClipboardTsv, PETPOOJA_COLUMNS } from '../utils/exportUtils';
+import { exportToExcel, exportToCsv, copyToClipboardTsv, POS_COLUMNS } from '../utils/exportUtils';
 
 interface MenuTableProps {
   rows: MenuItemRow[];
@@ -115,7 +115,7 @@ export const MenuTable: React.FC<MenuTableProps> = ({
           No Menu Extracted Yet
         </h3>
         <p className="text-xs text-slate-500 max-w-md mx-auto mb-4">
-          Upload your restaurant menu in <strong>PDF, Image (JPG/PNG), Word (.docx), or Excel (.xlsx/.csv)</strong> format above, or paste menu text to instantly generate the Petpooja 11-column table.
+          Upload your restaurant menu in <strong>PDF, Multiple Images (JPG/PNG), Word (.docx), or Excel (.xlsx/.csv)</strong> format above, or paste menu text to instantly generate the standard 11-column POS table.
         </p>
         <button
           onClick={onAddRow}
@@ -276,7 +276,7 @@ export const MenuTable: React.FC<MenuTableProps> = ({
           </button>
 
           <button
-            onClick={() => exportToCsv(rows, restaurantName ? `${restaurantName}_Petpooja` : 'Petpooja_Menu')}
+            onClick={() => exportToCsv(rows, restaurantName ? `${restaurantName}_POS_Menu` : 'POS_Menu')}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition-colors border border-slate-200"
             title="Download CSV file"
           >
@@ -285,12 +285,12 @@ export const MenuTable: React.FC<MenuTableProps> = ({
           </button>
 
           <button
-            onClick={() => exportToExcel(rows, restaurantName ? `${restaurantName}_Petpooja` : 'Petpooja_Menu')}
+            onClick={() => exportToExcel(rows, restaurantName ? `${restaurantName}_POS_Menu` : 'POS_Menu')}
             className="inline-flex items-center gap-2 px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg shadow-sm transition-all"
-            title="Download Petpooja POS compatible Excel (.xlsx) file"
+            title="Download POS compatible Excel (.xlsx) file"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>Download Petpooja Excel (.xlsx)</span>
+            <span>Download POS Excel (.xlsx)</span>
           </button>
 
           <button
@@ -303,11 +303,11 @@ export const MenuTable: React.FC<MenuTableProps> = ({
         </div>
       </div>
 
-      {/* Petpooja Rule Notice Bar */}
+      {/* POS Rule Notice Bar */}
       <div className="px-4 py-2 bg-emerald-50/60 border-b border-emerald-100 text-[11px] text-emerald-900 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="font-bold uppercase tracking-wider text-[10px] bg-emerald-200/80 text-emerald-900 px-1.5 py-0.5 rounded">
-            Petpooja Rule
+            POS Rule
           </span>
           <span>
             Parent dishes have <strong>Price = 0</strong>, followed by child variation rows (Half/Full, Sizes) with their respective prices.
@@ -539,14 +539,14 @@ export const MenuTable: React.FC<MenuTableProps> = ({
       <div className="p-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>Standard Petpooja 11-Column Export: Ready for POS Menu Import</span>
+          <span>Standard 11-Column Export: Ready for POS Menu Import</span>
         </div>
         <div className="flex items-center gap-3">
           <span className="font-mono text-slate-600 font-semibold">
             {rows.length} Total Records
           </span>
           <button
-            onClick={() => exportToExcel(rows, restaurantName ? `${restaurantName}_Petpooja` : 'Petpooja_Menu')}
+            onClick={() => exportToExcel(rows, restaurantName ? `${restaurantName}_POS_Menu` : 'POS_Menu')}
             className="text-emerald-700 hover:text-emerald-800 font-bold underline text-xs"
           >
             Export .xlsx now

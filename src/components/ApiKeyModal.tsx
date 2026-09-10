@@ -121,7 +121,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
             <div className="bg-slate-50 p-3 rounded-lg border border-slate-100 flex items-start gap-2 text-xs text-slate-500">
               <Shield className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
               <span>
-                Your API key is never shared or saved on any remote database. It is used directly for Gemini 2.5 Flash menu extraction.
+                Your API key is never shared or saved on any remote database. It is used directly for Gemini 2.5 Flash / 3.x Flash fast menu extraction.
               </span>
             </div>
 

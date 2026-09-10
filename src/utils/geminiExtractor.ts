@@ -154,41 +154,62 @@ function getClientLanguageInstruction(language: MenuOutputLanguage = 'english'):
 }
 
 export async function extractMenuData(params: {
+  files?: File[];
   file?: File;
   text?: string;
   customApiKey?: string;
   outputLanguage?: MenuOutputLanguage;
   onStatusUpdate?: (status: string) => void;
 }): Promise<ExtractionResponse> {
-  const { file, text, customApiKey, outputLanguage = 'english', onStatusUpdate } = params;
+  const { files, file, text, customApiKey, outputLanguage = 'english', onStatusUpdate } = params;
   const userKey = customApiKey || getStoredUserApiKey();
 
-  let fileBase64: string | undefined;
-  let mimeType: string | undefined;
-  let textContent: string | undefined = text;
+  // Consolidate input files
+  const allFiles: File[] = [];
+  if (files && files.length > 0) {
+    allFiles.push(...files);
+  } else if (file) {
+    allFiles.push(file);
+  }
 
-  // Process uploaded file based on its format: PDF, Image, Word, Excel
-  if (file) {
-    const fileCategory = detectFileType(file);
+  const filesPayload: Array<{ fileBase64: string; mimeType: string; fileName: string }> = [];
+  let textContent: string = text || '';
+
+  // Process all files based on their format: PDF, Image, Word, Excel
+  for (let i = 0; i < allFiles.length; i++) {
+    const currentFile = allFiles[i];
+    const fileCategory = detectFileType(currentFile);
+    const progressLabel = allFiles.length > 1 ? `[${i + 1}/${allFiles.length}] ` : '';
 
     if (fileCategory === 'excel') {
-      onStatusUpdate?.('Parsing Excel sheets (.xlsx / .xls / .csv)...');
-      textContent = await parseExcelFile(file);
+      onStatusUpdate?.(`${progressLabel}Parsing Excel sheet (${currentFile.name})...`);
+      const parsedExcel = await parseExcelFile(currentFile);
+      textContent += `\n${parsedExcel}\n`;
     } else if (fileCategory === 'word') {
-      onStatusUpdate?.('Extracting text and tables from Word document (.docx)...');
-      textContent = await parseWordFile(file);
+      onStatusUpdate?.(`${progressLabel}Extracting text from Word document (${currentFile.name})...`);
+      const parsedWord = await parseWordFile(currentFile);
+      textContent += `\n${parsedWord}\n`;
     } else if (fileCategory === 'text') {
-      onStatusUpdate?.('Reading menu text file...');
-      textContent = await file.text();
+      onStatusUpdate?.(`${progressLabel}Reading menu text file (${currentFile.name})...`);
+      const fileText = await currentFile.text();
+      textContent += `\n--- File: ${currentFile.name} ---\n${fileText}\n`;
     } else if (fileCategory === 'pdf') {
-      onStatusUpdate?.('Reading PDF pages...');
-      fileBase64 = await fileToBase64(file);
-      mimeType = 'application/pdf';
+      onStatusUpdate?.(`${progressLabel}Reading PDF (${currentFile.name})...`);
+      const base64 = await fileToBase64(currentFile);
+      filesPayload.push({
+        fileBase64: base64,
+        mimeType: 'application/pdf',
+        fileName: currentFile.name,
+      });
     } else {
       // Image (JPG, PNG, WebP, etc.)
-      onStatusUpdate?.('Encoding menu image for Gemini Vision...');
-      fileBase64 = await fileToBase64(file);
-      mimeType = file.type || 'image/jpeg';
+      onStatusUpdate?.(`${progressLabel}Encoding image (${currentFile.name})...`);
+      const base64 = await fileToBase64(currentFile);
+      filesPayload.push({
+        fileBase64: base64,
+        mimeType: currentFile.type || 'image/jpeg',
+        fileName: currentFile.name,
+      });
     }
   }
 
@@ -205,16 +226,20 @@ export async function extractMenuData(params: {
         ? 'Hinglish'
         : 'English';
 
-    onStatusUpdate?.(`Gemini 2.5 Flash formatting into Petpooja 11 columns [${langLabel}]...`);
+    const sourceDesc =
+      allFiles.length > 0
+        ? `${allFiles.length} file(s)`
+        : 'pasted text';
+
+    onStatusUpdate?.(`Fast AI extraction in progress for ${sourceDesc} [${langLabel}]...`);
     const res = await fetch('/api/extract-menu', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        fileBase64,
-        mimeType,
-        textContent,
+        files: filesPayload,
+        textContent: textContent.trim() || undefined,
         outputLanguage,
         userApiKey: userKey || undefined,
       }),
@@ -252,66 +277,92 @@ export async function extractMenuData(params: {
     const ai = new GoogleGenAI({ apiKey: userKey });
     const contents: Array<any> = [];
 
-    if (fileBase64 && mimeType) {
+    // Push all images / PDFs as multimodal inputs
+    for (const item of filesPayload) {
       contents.push({
         inlineData: {
-          data: fileBase64,
-          mimeType,
+          data: item.fileBase64,
+          mimeType: item.mimeType,
         },
       });
     }
 
-    const prompt = textContent
-      ? `Menu document content to parse (Target Language: ${outputLanguage.toUpperCase()}):\n\n${textContent}\n\nExtract all items and categories into Petpooja 11-column format with variation parent-child rules.`
-      : `Extract all items and categories from this restaurant menu into the Petpooja 11-column format with variation parent/child rows. Target Language: ${outputLanguage.toUpperCase()}.`;
+    const prompt = textContent.trim()
+      ? `Menu document content across ${allFiles.length > 0 ? `${allFiles.length} uploaded files` : 'text input'} (Target Language: ${outputLanguage.toUpperCase()}):\n\n${textContent}\n\nExtract and consolidate all items and categories into standard 11-column POS format with variation parent-child rules.`
+      : `Extract all items and categories from these ${filesPayload.length} menu document page(s) into the standard 11-column POS format with variation parent/child rows. Consolidate items. Target Language: ${outputLanguage.toUpperCase()}.`;
 
     contents.push(prompt);
 
-    const systemInstruction = `You are an expert restaurant menu parser for Petpooja POS.
+    const systemInstruction = `You are an expert restaurant menu parser for modern POS systems.
 Extract every item into 11 columns: Name, Item_Online_DisplayName, Variation_Name, Price, Category, Category_Online_DisplayName, Short_Code, Short_Code_2, Description, Attributes, Goods_Services.
 CRITICAL: For items with variations (e.g. Half/Full or slash prices like 140/260), first create a PARENT row with Price="0" and Variation_Name="", followed by CHILD rows for each variation with their respective prices.
 For single items without variations, create a single row with actual Price and Variation_Name="".
 
 ${getClientLanguageInstruction(outputLanguage)}`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents,
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            restaurantName: { type: Type.STRING },
-            currency: { type: Type.STRING },
-            items: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  Name: { type: Type.STRING },
-                  Item_Online_DisplayName: { type: Type.STRING },
-                  Variation_Name: { type: Type.STRING },
-                  Price: { type: Type.STRING },
-                  Category: { type: Type.STRING },
-                  Category_Online_DisplayName: { type: Type.STRING },
-                  Short_Code: { type: Type.STRING },
-                  Short_Code_2: { type: Type.STRING },
-                  Description: { type: Type.STRING },
-                  Attributes: { type: Type.STRING },
-                  Goods_Services: { type: Type.STRING },
-                },
-                required: ['Name', 'Price', 'Category'],
-              },
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        restaurantName: { type: Type.STRING },
+        currency: { type: Type.STRING },
+        items: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              Name: { type: Type.STRING },
+              Item_Online_DisplayName: { type: Type.STRING },
+              Variation_Name: { type: Type.STRING },
+              Price: { type: Type.STRING },
+              Category: { type: Type.STRING },
+              Category_Online_DisplayName: { type: Type.STRING },
+              Short_Code: { type: Type.STRING },
+              Short_Code_2: { type: Type.STRING },
+              Description: { type: Type.STRING },
+              Attributes: { type: Type.STRING },
+              Goods_Services: { type: Type.STRING },
             },
+            required: ['Name', 'Price', 'Category'],
           },
-          required: ['items'],
         },
       },
-    });
+      required: ['items'],
+    };
 
-    const parsed = JSON.parse(response.text || '{}');
+    // Try fast client-side generation across Flash models
+    const models = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-flash-latest'];
+    let parsed: any = null;
+    let lastErr: any = null;
+
+    for (const model of models) {
+      try {
+        const config: any = {
+          systemInstruction,
+          responseMimeType: 'application/json',
+          responseSchema,
+        };
+        if (model.includes('2.5-flash')) {
+          config.thinkingConfig = { thinkingBudget: 0 };
+        }
+
+        const res = await ai.models.generateContent({
+          model,
+          contents,
+          config,
+        });
+        if (res.text) {
+          parsed = JSON.parse(res.text);
+          break;
+        }
+      } catch (e: any) {
+        lastErr = e;
+      }
+    }
+
+    if (!parsed) {
+      throw lastErr || new Error('Client-side Gemini extraction failed. Please check your API key.');
+    }
+
     const items: MenuItemRow[] = (parsed.items || []).map((item: any, idx: number) => {
       const priceStr = String(item.Price || '0').replace(/[^0-9.]/g, '');
       const isParent = priceStr === '0' && (!item.Variation_Name || item.Variation_Name.trim() === '');
@@ -402,7 +453,7 @@ export async function translateMenuData(params: {
 
   try {
     const ai = new GoogleGenAI({ apiKey: userKey });
-    const prompt = `You are a culinary translator for Petpooja POS.
+    const prompt = `You are a culinary translator for modern POS systems.
 Translate and adapt the following menu items into ${targetLanguage.toUpperCase()}:
 ${getClientLanguageInstruction(targetLanguage)}
 

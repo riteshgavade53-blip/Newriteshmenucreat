@@ -1,6 +1,6 @@
 import { MenuItemRow, SamplePreset } from '../types';
 
-export const PETPOOJA_SAMPLE_DATA: MenuItemRow[] = [
+export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
   {
     id: 'row-1',
     Name: 'Paneer Butter Masala',
@@ -347,10 +347,10 @@ export const CAFE_SAMPLE_DATA: MenuItemRow[] = [
 export const SAMPLE_PRESETS: SamplePreset[] = [
   {
     id: 'north-indian',
-    title: 'North Indian Restaurant (Petpooja Standard)',
+    title: 'North Indian Restaurant (11-Column POS Format)',
     cuisine: 'North Indian & Tandoor',
     description: 'Complete menu with Half/Full variations, Veg & Non-Veg classifications and 11 standard columns.',
-    itemCount: PETPOOJA_SAMPLE_DATA.length,
+    itemCount: NORTH_INDIAN_SAMPLE_DATA.length,
     sampleText: `STARTERS
 Crispy Corn Salt & Pepper - 180
 Tandoori Chicken Tikka - 260
@@ -369,7 +369,7 @@ Butter Garlic Naan - 65
 BEVERAGES & DESSERTS
 Mango Lassi - 90
 Gulab Jamun with Rabdi - 120`,
-    defaultRows: PETPOOJA_SAMPLE_DATA,
+    defaultRows: NORTH_INDIAN_SAMPLE_DATA,
   },
   {
     id: 'cafe-bakery',

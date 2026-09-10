@@ -140,10 +140,10 @@ app.delete('/api/saved-menus/:id', (req, res) => {
 });
 
 // Menu extraction prompt generator with Multilingual support
-const BASE_PETPOOJA_SYSTEM_INSTRUCTION = `You are a world-class restaurant menu digitization specialist for Petpooja POS system.
-Your job is to accurately extract restaurant menu items from documents (images, PDFs, text, Word docs, or Excel spreadsheets) and format them into the standard 11-column Petpooja menu format.
+const BASE_POS_SYSTEM_INSTRUCTION = `You are a world-class restaurant menu digitization specialist for modern POS systems.
+Your job is to accurately extract restaurant menu items from documents (images, PDFs, text, Word docs, or Excel spreadsheets) and format them into the standard 11-column restaurant POS menu format.
 
-CRITICAL RULES FOR PETPOOJA MENU FORMAT:
+CRITICAL RULES FOR 11-COLUMN POS MENU FORMAT:
 1. Columns must follow this structure:
    - Name: Item name
    - Item_Online_DisplayName: Customer-facing item name (usually same as Name)
@@ -157,13 +157,13 @@ CRITICAL RULES FOR PETPOOJA MENU FORMAT:
    - Attributes: Dietary tag: "Veg", "Non-Veg", "Egg", "Vegan", or "Beverage".
    - Goods_Services: Always "Goods" for food & drinks.
 
-2. VARIATIONS & PARENT-CHILD RULE (CRITICAL FOR PETPOOJA POS):
+2. VARIATIONS & PARENT-CHILD RULE (CRITICAL FOR POS):
    - Whenever an item has multiple sizes/portions/variations (e.g., slash-separated prices like "140/260", or explicit options like "Half/Full", "Small/Medium/Large", "Single/Double"):
      A. Create ONE PARENT ROW FIRST:
         - Name: Base dish name (e.g. "Paneer Butter Masala")
         - Item_Online_DisplayName: Base dish name
         - Variation_Name: ""
-        - Price: "0"  (CRITICAL: Parent row price in Petpooja MUST ALWAYS BE 0)
+        - Price: "0"  (CRITICAL: Parent row price in POS MUST ALWAYS BE 0)
         - Category: Category name
         - Category_Online_DisplayName: Category name
         - Short_Code: Base code (e.g. "PBM")
@@ -233,13 +233,76 @@ function getExtractionSystemInstruction(language: string = 'english'): string {
       break;
   }
 
-  return `${BASE_PETPOOJA_SYSTEM_INSTRUCTION}\n\n${languageRule}`;
+  return `${BASE_POS_SYSTEM_INSTRUCTION}\n\n${languageRule}`;
 }
 
-// Extract menu endpoint
+/**
+ * Fast output helper with model fallback:
+ * Sets thinkingBudget: 0 for gemini-2.5-flash for instant fast responses (no delayed thinking).
+ * Seamlessly tries gemini-2.5-flash, gemini-3.8-flash, and gemini-flash-latest so both Gemini 2.5 Flash and other keys work.
+ */
+async function callGeminiFastWithFallback(
+  ai: GoogleGenAI,
+  contents: any[],
+  systemInstruction: string,
+  responseSchema: any
+): Promise<string> {
+  const models = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-flash-latest'];
+  let lastErr: any = null;
+
+  for (const model of models) {
+    try {
+      const config: any = {
+        systemInstruction,
+        responseMimeType: 'application/json',
+        responseSchema,
+      };
+
+      // Turn off thinking budget on 2.5-flash for fastest latency
+      if (model.includes('2.5-flash')) {
+        config.thinkingConfig = { thinkingBudget: 0 };
+      }
+
+      const response = await ai.models.generateContent({
+        model,
+        contents,
+        config,
+      });
+
+      if (response.text) {
+        return response.text;
+      }
+    } catch (err: any) {
+      console.warn(`Model ${model} attempt failed:`, err?.message || err);
+      lastErr = err;
+
+      // If thinkingConfig is unsupported or failed, retry without it
+      if (model.includes('2.5-flash')) {
+        try {
+          const retryRes = await ai.models.generateContent({
+            model,
+            contents,
+            config: {
+              systemInstruction,
+              responseMimeType: 'application/json',
+              responseSchema,
+            },
+          });
+          if (retryRes.text) return retryRes.text;
+        } catch (inner) {
+          lastErr = inner;
+        }
+      }
+    }
+  }
+
+  throw lastErr || new Error('All Gemini Flash models failed to respond.');
+}
+
+// Extract menu endpoint supporting multiple files & images
 app.post('/api/extract-menu', async (req, res) => {
   try {
-    const { fileBase64, mimeType, textContent, userApiKey, outputLanguage } = req.body;
+    const { files, fileBase64, mimeType, textContent, userApiKey, outputLanguage } = req.body;
 
     const apiKey = userApiKey || process.env.GEMINI_API_KEY;
 
@@ -247,122 +310,131 @@ app.post('/api/extract-menu', async (req, res) => {
       return res.status(400).json({
         success: false,
         error:
-          'No Gemini API Key provided. Please provide a GEMINI_API_KEY in the environment or enter your key in the app settings.',
+          'No Gemini API Key provided. Please enter your API key in settings or configure GEMINI_API_KEY.',
       });
     }
 
-    if (!fileBase64 && !textContent) {
+    // Support both multiple files array and single fileBase64
+    const rawFiles: Array<{ fileBase64: string; mimeType: string; fileName?: string }> = [];
+    if (files && Array.isArray(files) && files.length > 0) {
+      rawFiles.push(...files);
+    } else if (fileBase64) {
+      rawFiles.push({ fileBase64, mimeType: mimeType || 'image/jpeg', fileName: 'Menu Document' });
+    }
+
+    if (rawFiles.length === 0 && !textContent) {
       return res.status(400).json({
         success: false,
-        error: 'Please provide a file (PDF, Image, Word, Excel) or text content to extract.',
+        error: 'Please provide at least one file (Image, PDF, Word, Excel) or text content to extract.',
       });
     }
 
     const targetLang = outputLanguage || 'english';
     let parsedText = textContent || '';
-    let sendInlineData: { data: string; mimeType: string } | null = null;
+    const inlineDataItems: Array<{ data: string; mimeType: string }> = [];
 
-    // If fileBase64 is provided and textContent wasn't already generated:
-    if (fileBase64 && !parsedText) {
+    // Process all uploaded files
+    for (const f of rawFiles) {
       const isExcel =
-        mimeType?.includes('sheet') ||
-        mimeType?.includes('excel') ||
-        mimeType?.includes('csv');
+        f.mimeType?.includes('sheet') ||
+        f.mimeType?.includes('excel') ||
+        f.mimeType?.includes('csv') ||
+        f.fileName?.endsWith('.xlsx') ||
+        f.fileName?.endsWith('.xls') ||
+        f.fileName?.endsWith('.csv');
+
       const isWord =
-        mimeType?.includes('wordprocessingml') ||
-        mimeType?.includes('msword');
+        f.mimeType?.includes('wordprocessingml') ||
+        f.mimeType?.includes('msword') ||
+        f.fileName?.endsWith('.docx') ||
+        f.fileName?.endsWith('.doc');
 
       if (isExcel) {
         try {
-          const buffer = Buffer.from(fileBase64, 'base64');
+          const buffer = Buffer.from(f.fileBase64, 'base64');
           const workbook = XLSX.read(buffer, { type: 'buffer' });
-          let sheetText = '=== EXCEL SPREADSHEET ===\n';
+          let sheetText = `\n=== EXCEL SPREADSHEET: "${f.fileName || 'Sheet'}" ===\n`;
           workbook.SheetNames.forEach((name) => {
             const sheet = workbook.Sheets[name];
             const csv = XLSX.utils.sheet_to_csv(sheet);
             if (csv.trim()) {
-              sheetText += `\n--- Sheet: ${name} ---\n${csv}\n`;
+              sheetText += `--- Sheet: ${name} ---\n${csv}\n`;
             }
           });
-          parsedText = sheetText;
+          parsedText += `\n${sheetText}\n`;
         } catch (excelErr) {
           console.error('Server Excel parse error:', excelErr);
         }
       } else if (isWord) {
         try {
-          const buffer = Buffer.from(fileBase64, 'base64');
+          const buffer = Buffer.from(f.fileBase64, 'base64');
           const result = await mammoth.extractRawText({ buffer });
-          parsedText = `=== WORD DOCUMENT ===\n\n${result.value}`;
+          parsedText += `\n=== WORD DOCUMENT: "${f.fileName || 'Doc'}" ===\n\n${result.value}\n`;
         } catch (wordErr) {
           console.error('Server Word parse error:', wordErr);
         }
       } else {
         // PDF or Images (JPG, PNG, WebP, etc.)
-        sendInlineData = {
-          data: fileBase64,
-          mimeType: mimeType || 'image/jpeg',
-        };
+        inlineDataItems.push({
+          data: f.fileBase64,
+          mimeType: f.mimeType || 'image/jpeg',
+        });
       }
     }
 
     const ai = new GoogleGenAI({ apiKey });
     const contents: Array<any> = [];
 
-    if (sendInlineData) {
+    // Push all images / PDFs as multimodal inputs to Gemini
+    for (const item of inlineDataItems) {
       contents.push({
-        inlineData: sendInlineData,
+        inlineData: item,
       });
     }
 
     const promptText = parsedText
-      ? `Here is the menu content to parse into Petpooja POS 11-column format:\n\n${parsedText}\n\nTarget Output Language: ${targetLang.toUpperCase()}.\nParse and structure every item following the Petpooja 11-column standards, variation parent-child rules, and the language requirement.`
-      : `Please analyze this restaurant menu document and extract every item and category into the Petpooja 11-column structured format with proper parent rows (price 0) for variations and child rows for each variation. Target Output Language: ${targetLang.toUpperCase()}.`;
+      ? `Here is the menu content across ${rawFiles.length > 0 ? `${rawFiles.length} uploaded files/documents` : 'text input'} to parse into standard 11-column POS format:\n\n${parsedText}\n\nTarget Output Language: ${targetLang.toUpperCase()}.\nExtract and consolidate every item across all pages into the 11-column POS standards, variation parent-child rules, and the language requirement.`
+      : `Please analyze these ${inlineDataItems.length} menu document page(s) and extract all items and categories into the standard 11-column POS structured format with proper parent rows (price 0) for variations and child rows for each variation. Consolidate matching categories. Target Output Language: ${targetLang.toUpperCase()}.`;
 
     contents.push(promptText);
 
     const systemInstruction = getExtractionSystemInstruction(targetLang);
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents,
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            restaurantName: { type: Type.STRING },
-            currency: { type: Type.STRING },
-            items: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  Name: { type: Type.STRING },
-                  Item_Online_DisplayName: { type: Type.STRING },
-                  Variation_Name: { type: Type.STRING },
-                  Price: { type: Type.STRING },
-                  Category: { type: Type.STRING },
-                  Category_Online_DisplayName: { type: Type.STRING },
-                  Short_Code: { type: Type.STRING },
-                  Short_Code_2: { type: Type.STRING },
-                  Description: { type: Type.STRING },
-                  Attributes: { type: Type.STRING },
-                  Goods_Services: { type: Type.STRING },
-                },
-                required: ['Name', 'Price', 'Category'],
-              },
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        restaurantName: { type: Type.STRING },
+        currency: { type: Type.STRING },
+        items: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              Name: { type: Type.STRING },
+              Item_Online_DisplayName: { type: Type.STRING },
+              Variation_Name: { type: Type.STRING },
+              Price: { type: Type.STRING },
+              Category: { type: Type.STRING },
+              Category_Online_DisplayName: { type: Type.STRING },
+              Short_Code: { type: Type.STRING },
+              Short_Code_2: { type: Type.STRING },
+              Description: { type: Type.STRING },
+              Attributes: { type: Type.STRING },
+              Goods_Services: { type: Type.STRING },
             },
+            required: ['Name', 'Price', 'Category'],
           },
-          required: ['items'],
         },
       },
-    });
+      required: ['items'],
+    };
 
-    const responseText = response.text;
-    if (!responseText) {
-      throw new Error('Gemini returned an empty response.');
-    }
+    const responseText = await callGeminiFastWithFallback(
+      ai,
+      contents,
+      systemInstruction,
+      responseSchema
+    );
 
     const parsedData = JSON.parse(responseText);
 
@@ -427,7 +499,7 @@ app.post('/api/translate-menu', async (req, res) => {
     }
 
     const targetLang = (targetLanguage || 'english').toLowerCase().trim();
-    const systemInstruction = `You are a culinary localization and menu translation expert for Indian restaurants and Petpooja POS.
+    const systemInstruction = `You are a culinary localization and menu translation expert for Indian restaurants and modern POS.
 Your task is to translate and adapt restaurant menu items into the target language: "${targetLang.toUpperCase()}".
 
 ${getExtractionSystemInstruction(targetLang)}
@@ -447,7 +519,7 @@ STRICT MAPPING INSTRUCTIONS:
     const ai = new GoogleGenAI({ apiKey });
 
     // Send the rows
-    const prompt = `Translate the following ${rows.length} Petpooja menu rows into target language "${targetLang.toUpperCase()}":\n\n${JSON.stringify(
+    const prompt = `Translate the following ${rows.length} menu rows into target language "${targetLang.toUpperCase()}":\n\n${JSON.stringify(
       rows.map((r) => ({
         id: r.id,
         Name: r.Name,
@@ -464,43 +536,40 @@ STRICT MAPPING INSTRUCTIONS:
       }))
     )}`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [prompt],
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            items: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  id: { type: Type.STRING },
-                  Name: { type: Type.STRING },
-                  Item_Online_DisplayName: { type: Type.STRING },
-                  Variation_Name: { type: Type.STRING },
-                  Price: { type: Type.STRING },
-                  Category: { type: Type.STRING },
-                  Category_Online_DisplayName: { type: Type.STRING },
-                  Short_Code: { type: Type.STRING },
-                  Short_Code_2: { type: Type.STRING },
-                  Description: { type: Type.STRING },
-                  Attributes: { type: Type.STRING },
-                  Goods_Services: { type: Type.STRING },
-                },
-                required: ['id', 'Name', 'Price', 'Category'],
-              },
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        items: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              id: { type: Type.STRING },
+              Name: { type: Type.STRING },
+              Item_Online_DisplayName: { type: Type.STRING },
+              Variation_Name: { type: Type.STRING },
+              Price: { type: Type.STRING },
+              Category: { type: Type.STRING },
+              Category_Online_DisplayName: { type: Type.STRING },
+              Short_Code: { type: Type.STRING },
+              Short_Code_2: { type: Type.STRING },
+              Description: { type: Type.STRING },
+              Attributes: { type: Type.STRING },
+              Goods_Services: { type: Type.STRING },
             },
+            required: ['id', 'Name', 'Price', 'Category'],
           },
-          required: ['items'],
         },
       },
-    });
+      required: ['items'],
+    };
 
-    const responseText = response.text;
+    const responseText = await callGeminiFastWithFallback(
+      ai,
+      [prompt],
+      systemInstruction,
+      responseSchema
+    );
     if (!responseText) {
       throw new Error('Gemini returned empty translation.');
     }

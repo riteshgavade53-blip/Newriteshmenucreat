@@ -1,0 +1,6 @@
+{
+  "name": "Menu File Extractor",
+  "description": "Extract restaurant menus from PDFs, images, Word docs, and Excel sheets into Petpooja 11-column POS format with persistent saved menu history and live visitor tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

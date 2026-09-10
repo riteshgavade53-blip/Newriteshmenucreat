@@ -13,7 +13,6 @@ import {
   Sparkles,
   Info,
   ChevronRight,
-  Bookmark,
   Languages,
   Loader2,
 } from 'lucide-react';
@@ -27,8 +26,6 @@ interface MenuTableProps {
   onDuplicateRow: (id: string) => void;
   onAddRow: () => void;
   onClearRows: () => void;
-  onSaveMenu?: () => void;
-  isSaved?: boolean;
   restaurantName?: string;
   currentLanguage?: MenuOutputLanguage;
   onTranslateLanguage?: (targetLang: MenuOutputLanguage) => Promise<void>;
@@ -42,8 +39,6 @@ export const MenuTable: React.FC<MenuTableProps> = ({
   onDuplicateRow,
   onAddRow,
   onClearRows,
-  onSaveMenu,
-  isSaved = false,
   restaurantName,
   currentLanguage = 'english',
   onTranslateLanguage,
@@ -288,30 +283,6 @@ export const MenuTable: React.FC<MenuTableProps> = ({
             <Download className="w-3.5 h-3.5 text-slate-600" />
             <span>CSV</span>
           </button>
-
-          {onSaveMenu && (
-            <button
-              onClick={onSaveMenu}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg transition-all border shadow-2xs ${
-                isSaved
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white border-transparent'
-              }`}
-              title="Save this extracted menu to your site history"
-            >
-              {isSaved ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Saved to Site</span>
-                </>
-              ) : (
-                <>
-                  <Bookmark className="w-3.5 h-3.5" />
-                  <span>Save Menu</span>
-                </>
-              )}
-            </button>
-          )}
 
           <button
             onClick={() => exportToExcel(rows, restaurantName ? `${restaurantName}_Petpooja` : 'Petpooja_Menu')}

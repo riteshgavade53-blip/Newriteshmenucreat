@@ -211,35 +211,58 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
         )}
       </div>
 
-      {/* Mode Tabs */}
-      <div className="flex border-b border-slate-200 bg-slate-50/70 p-1.5 gap-1 text-xs">
+      {/* Mode Tabs - Highlighted with distinct, vibrant colors */}
+      <div className="flex flex-col sm:flex-row border-b border-slate-200 bg-slate-100/90 p-2.5 gap-2.5 text-xs sm:text-sm">
+        {/* Tab 1: Upload Files - High-visibility Emerald Green */}
         <button
+          id="tab-mode-upload"
+          type="button"
           onClick={() => setActiveTab('upload')}
-          className={`flex-1 py-2.5 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+          className={`flex-1 py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer ${
             activeTab === 'upload'
-              ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-700/25 border-2 border-emerald-600 ring-2 ring-emerald-400/40'
+              : 'bg-emerald-50/90 hover:bg-emerald-100 text-emerald-800 border-2 border-emerald-300 hover:border-emerald-400'
           }`}
         >
-          <UploadCloud className="w-4 h-4 text-emerald-600" />
-          <span>Multiple Images & Files (PDF, Images, Word, Excel)</span>
+          <UploadCloud className={`w-5 h-5 shrink-0 ${activeTab === 'upload' ? 'text-white' : 'text-emerald-600'}`} />
+          <span className="tracking-wide">Multiple Images & Files (PDF, Images, Word, Excel)</span>
           {selectedFiles.length > 0 && (
-            <span className="bg-emerald-100 text-emerald-800 font-bold px-1.5 py-0.2 rounded-full text-[10px]">
+            <span
+              className={`px-2 py-0.5 rounded-full text-[11px] font-black shrink-0 ${
+                activeTab === 'upload'
+                  ? 'bg-white text-emerald-700 shadow-2xs'
+                  : 'bg-emerald-600 text-white'
+              }`}
+            >
               {selectedFiles.length}
             </span>
           )}
         </button>
 
+        {/* Tab 2: Text / WhatsApp - High-visibility Indigo / Royal Blue */}
         <button
+          id="tab-mode-text"
+          type="button"
           onClick={() => setActiveTab('text')}
-          className={`flex-1 py-2.5 px-4 rounded-lg font-semibold flex items-center justify-center gap-2 transition-all ${
+          className={`flex-1 py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2.5 transition-all duration-200 cursor-pointer ${
             activeTab === 'text'
-              ? 'bg-white text-slate-900 shadow-xs border border-slate-200/80'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
+              ? 'bg-indigo-600 text-white shadow-md shadow-indigo-700/25 border-2 border-indigo-600 ring-2 ring-indigo-400/40'
+              : 'bg-indigo-50/90 hover:bg-indigo-100 text-indigo-800 border-2 border-indigo-300 hover:border-indigo-400'
           }`}
         >
-          <ClipboardList className="w-4 h-4 text-teal-600" />
-          <span>Paste Menu Text / WhatsApp Message</span>
+          <ClipboardList className={`w-5 h-5 shrink-0 ${activeTab === 'text' ? 'text-white' : 'text-indigo-600'}`} />
+          <span className="tracking-wide">Paste Menu Text / WhatsApp Message</span>
+          {pastedText.trim().length > 0 && (
+            <span
+              className={`px-2 py-0.5 rounded-full text-[11px] font-black shrink-0 ${
+                activeTab === 'text'
+                  ? 'bg-white text-indigo-700 shadow-2xs'
+                  : 'bg-indigo-600 text-white'
+              }`}
+            >
+              Text Added
+            </span>
+          )}
         </button>
       </div>
 

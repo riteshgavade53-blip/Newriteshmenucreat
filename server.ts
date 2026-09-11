@@ -7,7 +7,7 @@ import mammoth from 'mammoth';
 import { GoogleGenAI, Type } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
 import { normalizeDietary, normalizeRowsDietary } from './src/utils/dietaryUtils';
-import { assignStandardShortCodes } from './src/utils/shortCodeUtils';
+import { assignStandardShortCodes, normalizeParentChildAndOrphanVariations } from './src/utils/shortCodeUtils';
 
 dotenv.config();
 
@@ -168,28 +168,42 @@ CRITICAL RULES FOR 11-COLUMN POS MENU FORMAT:
    - Goods_Services: MUST BE COMPLETELY BLANK (empty string ""). Never output "Goods" or "Services", keep it completely empty "".
 
 2. VARIATIONS & PARENT-CHILD RULE (CRITICAL FOR POS):
-   - Whenever an item has multiple sizes/portions/variations (e.g., slash-separated prices like "140/260", or explicit options like "Half/Full", "Small/Medium/Large", "4 pcs/8 pcs", "Single/Double"):
+   - ONLY create Parent-Child variations if an item has 2 OR MORE different sizes/portions/options (e.g. "Water Bottle" with both "1ltr" AND "500ml", or "Biryani" with "Half" AND "Full", or "Lollypop" with "4 pcs" AND "8 pcs", or slash prices like "140/260").
+     In that case:
      A. Create ONE PARENT ROW FIRST:
-        - Name: Base dish name (e.g. "Lollypop Oil Fry")
-        - Item_Online_DisplayName: EXACT SAME base dish name as Name (e.g. "Lollypop Oil Fry")
-        - Variation_Name: ""
+        - Name: Base dish name (e.g. "Water Bottle" or "Lollypop Oil Fry")
+        - Item_Online_DisplayName: EXACT SAME base dish name as Name (e.g. "Water Bottle")
+        - Variation_Name: "" (strictly empty)
         - Price: "0"  (CRITICAL: Parent row price in POS MUST ALWAYS BE 0)
         - Category: Category name
         - Category_Online_DisplayName: Category name
-        - Short_Code: Base alphabetic code (e.g. "LOF")
-        - Attributes: Dietary tag (e.g. "Non-Veg")
-        - Goods_Services: "" (leave completely blank)
-     B. Create CHILD ROWS for EACH variation immediately under the parent:
-        - Name: EXACT same base dish name as parent (e.g. "Lollypop Oil Fry")
-        - Item_Online_DisplayName: EXACT same base dish name as parent (e.g. "Lollypop Oil Fry" - NEVER put variation or piece count here!)
-        - Variation_Name: Variation label (e.g. "4 pcs", "8 pcs", "Half", "Full")
-        - Price: The actual variation price (e.g. "159", "299")
-        - Category: Same Category
-        - Category_Online_DisplayName: Same Category
-        - Short_Code: Base code + variation digit without hyphen (e.g. "LOF1", "LOF2")
+        - Short_Code: Base alphabetic code (e.g. "WB" or "LOF")
         - Attributes: Dietary tag
         - Goods_Services: "" (leave completely blank)
-   - If an item does NOT have variations, create a single row with its actual price and empty Variation_Name (e.g. "Chicken Seekh Kebab" -> Short_Code "CSK"). Item_Online_DisplayName must be identical to Name.
+     B. Create CHILD ROWS for EACH variation immediately under the parent:
+        - Name: EXACT same base dish name as parent (e.g. "Water Bottle")
+        - Item_Online_DisplayName: EXACT same base dish name as parent (e.g. "Water Bottle")
+        - Variation_Name: Variation label (e.g. "1ltr", "500ml", "4 pcs", "8 pcs")
+        - Price: The actual variation price (e.g. "20", "10")
+        - Category: Same Category
+        - Category_Online_DisplayName: Same Category
+        - Short_Code: Base code + variation digit without hyphen (e.g. "WB1", "WB2")
+        - Attributes: Dietary tag
+        - Goods_Services: "" (leave completely blank)
+
+   - CRITICAL RULE FOR SINGLE PORTION / STANDALONE ITEMS (NO PARENT ITEM):
+     If an item has only ONE size/portion/volume/packaging mentioned (e.g. "Sprite 200ml", "Soda 200ml", "Thumbs Up 200ml", "Snacks 10", "Red Bull 250ml", "Chicken Seekh Kebab 4 pcs"):
+     * THIS ITEM DOES NOT HAVE A PARENT ITEM!
+     * DO NOT put "200ml" or "4 pcs" into Variation_Name!
+     * Write the size/portion in parentheses ( ) behind the item Name:
+       - Name: "Sprite (200ml)" (or "Thumbs Up (200ml)", "Soda (200ml)", "Chicken Seekh Kebab (4 pcs)")
+       - Item_Online_DisplayName: "Sprite (200ml)" (strictly identical to Name)
+       - Variation_Name: "" (MUST BE COMPLETELY EMPTY / BLANK!)
+       - Price: The actual price (e.g. "20")
+       - Short_Code: Acronym of the dish (e.g. "SPR", "TU", "SOD")
+       - Attributes: Dietary tag
+       - Goods_Services: "" (leave completely blank)
+     * NEVER put anything in Variation_Name unless there is an active Parent row with Price 0 for that dish!
 
 3. Extract ALL items from the menu without skipping any categories or items.
 4. Clean up any OCR artifacts, price symbols, or accidental characters.`;
@@ -618,9 +632,11 @@ STRICT MAPPING INSTRUCTIONS:
       };
     });
 
+    const finalizedTranslatedRows = assignStandardShortCodes(updatedRows, false);
+
     return res.json({
       success: true,
-      items: updatedRows,
+      items: finalizedTranslatedRows,
       targetLanguage: targetLang,
     });
   } catch (err: any) {

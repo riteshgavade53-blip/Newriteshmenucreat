@@ -313,8 +313,21 @@ CRITICAL SHORT CODE RULE (Alphabetic POS Format):
 - For parent dishes: Base alphabetic code (e.g. "HCD").
 - For child variations: Base code + sequential digit without hyphen (e.g. 1st variation -> "HCD1", 2nd variation -> "HCD2", 3rd variation -> "HCD3").
 - If another dish gets same acronym, append sequential digit (e.g. "CSK1", "CSK2").
-CRITICAL: For items with variations (e.g. Half/Full, 4 pcs/8 pcs, or slash prices like 140/260), first create a PARENT row with Price="0", Variation_Name="", followed by CHILD rows for each variation with their respective prices. In both parent and child rows, Name and Item_Online_DisplayName must be the exact same dish name.
-For single items without variations, create a single row with actual Price, empty Variation_Name="", and Item_Online_DisplayName identical to Name.
+CRITICAL: For items with variations (ONLY when there are 2 or more sizes like Half/Full, 4 pcs/8 pcs, 1ltr/500ml, or slash prices like 140/260):
+- First create a PARENT row with Price="0", Variation_Name="".
+- Followed by CHILD rows for each variation with their respective prices.
+- In both parent and child rows, Name and Item_Online_DisplayName must be the exact same dish name.
+
+CRITICAL RULE FOR SINGLE PORTION / STANDALONE ITEMS (NO PARENT ITEM):
+- If an item only has a SINGLE size/packaging/volume/piece-count (e.g. "Sprite 200ml", "Soda 200ml", "Thumbs Up 200ml", "Red Bull 250ml", "Chicken Seekh Kebab 4 pcs"):
+  * IT DOES NOT HAVE A PARENT ITEM!
+  * DO NOT put "200ml" or "4 pcs" into Variation_Name!
+  * Write the size/portion in parentheses ( ) behind the item Name:
+    - Name: "Sprite (200ml)" (or "Thumbs Up (200ml)", "Soda (200ml)")
+    - Item_Online_DisplayName: "Sprite (200ml)" (strictly identical to Name)
+    - Variation_Name: "" (MUST BE COMPLETELY BLANK / EMPTY!)
+    - Price: The actual price (e.g. "20")
+  * NEVER put anything in Variation_Name unless there is an active Parent row with Price 0 for that dish!
 
 ${getClientLanguageInstruction(outputLanguage)}`;
 

@@ -282,8 +282,9 @@ export default function App() {
       Item_Online_DisplayName: r.Name,
       Goods_Services: '',
     }));
-    setRows(assignStandardShortCodes(sanitized, true));
-    showToast('⚡ Short codes & POS format updated (Name = Item_Online_DisplayName, Goods_Services blank)!');
+    const fixed = assignStandardShortCodes(sanitized, true);
+    setRows(fixed);
+    showToast('⚡ Single variations merged into Name ( ) e.g. Sprite (200ml) & Short Codes refreshed!');
   };
 
   const handleClearRows = () => {

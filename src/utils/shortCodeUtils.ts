@@ -144,11 +144,14 @@ export function generateBaseAcronym(name: string): string {
 export function assignStandardShortCodes(rows: MenuItemRow[], forceAll: boolean = false): MenuItemRow[] {
   if (!rows || rows.length === 0) return [];
 
+  // First normalize parent-child relations and merge orphan variations into Name e.g. Sprite (200ml)
+  const normalizedRows = normalizeParentChildAndOrphanVariations(rows);
+
   const usedCodes = new Set<string>();
 
   // If NOT forceAll, pre-register existing codes so we don't accidentally duplicate
   if (!forceAll) {
-    for (const r of rows) {
+    for (const r of normalizedRows) {
       if (r.Short_Code && r.Short_Code.trim()) {
         usedCodes.add(r.Short_Code.trim().toUpperCase());
       }
@@ -161,7 +164,7 @@ export function assignStandardShortCodes(rows: MenuItemRow[], forceAll: boolean 
     variationIndex: number;
   } | null = null;
 
-  return rows.map((row) => {
+  return normalizedRows.map((row) => {
     // If not forcing all and row already has a valid non-empty short code, keep it
     if (!forceAll && row.Short_Code && row.Short_Code.trim()) {
       const code = row.Short_Code.trim().toUpperCase();
@@ -235,4 +238,161 @@ export function assignStandardShortCodes(rows: MenuItemRow[], forceAll: boolean 
       Short_Code: assignedCode,
     };
   });
+}
+
+/**
+ * Appends variation / portion text to dish Name inside parentheses ( ) without duplicating.
+ * e.g. ("Sprite", "200ml") -> "Sprite (200ml)"
+ * e.g. ("Sprite 200ml", "200ml") -> "Sprite (200ml)"
+ * e.g. ("Sprite (200ml)", "200ml") -> "Sprite (200ml)"
+ */
+export function appendVariationToName(name: string, variation: string): string {
+  const cleanName = (name || '').trim();
+  const cleanVar = (variation || '').trim();
+  if (!cleanVar || cleanVar === '—') return cleanName;
+
+  // If already has exact "(variation)"
+  if (cleanName.toLowerCase().includes(`(${cleanVar.toLowerCase()})`)) {
+    return cleanName;
+  }
+
+  // If name ends with the variation text without parens (e.g. "Sprite 200ml")
+  const regexEnds = new RegExp(`\\s+${cleanVar.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i');
+  if (regexEnds.test(cleanName)) {
+    return cleanName.replace(regexEnds, ` (${cleanVar})`);
+  }
+
+  return `${cleanName} (${cleanVar})`;
+}
+
+/**
+ * Normalizes parent-child structures and fixes orphan variations:
+ * 
+ * User mandate:
+ * "Sprite or soda ki parent item nahi he to usne 200ml varaition me diya e aisa nahi hona chiye.
+ * Jab parent item na hoto varation wala item name ke piche ( ) me likhe ke aana chiye."
+ * 
+ * Rules:
+ * 1. If an item has a parent item (Price = 0, Variation_Name = ""), it remains a child variation.
+ * 2. If an item does NOT have a parent item:
+ *    - The variation label (e.g. "200ml", "6 pcs") is appended in parentheses behind Name: e.g. "Sprite (200ml)"
+ *    - Item_Online_DisplayName is set identical to Name: e.g. "Sprite (200ml)"
+ *    - Variation_Name is emptied ("")
+ *    - isVariation is set to false
+ *    - isParent is set to false
+ */
+export function normalizeParentChildAndOrphanVariations(rows: MenuItemRow[]): MenuItemRow[] {
+  if (!rows || rows.length === 0) return [];
+
+  // 1. Identify all base dish names that have a legitimate Parent item (Price === 0 or isParent === true with empty variation)
+  const parentNames = new Set<string>();
+  const nameOccurrences = new Map<string, number>();
+
+  for (const r of rows) {
+    const rawName = (r.Name || '').trim();
+    if (!rawName) continue;
+    const nameLower = rawName.toLowerCase();
+    nameOccurrences.set(nameLower, (nameOccurrences.get(nameLower) || 0) + 1);
+
+    const priceNum = parseFloat(String(r.Price || '0').replace(/[^0-9.]/g, ''));
+    const isVarEmpty = !r.Variation_Name || r.Variation_Name.trim() === '' || r.Variation_Name.trim() === '—';
+
+    if (r.isParent || (priceNum === 0 && isVarEmpty)) {
+      parentNames.add(nameLower);
+    }
+  }
+
+  return rows.map((r) => {
+    const rawName = (r.Name || '').trim();
+    const nameLower = rawName.toLowerCase();
+    const rawVar = (r.Variation_Name || '').trim();
+    const hasVariation = Boolean(rawVar && rawVar !== '—');
+    const priceNum = parseFloat(String(r.Price || '0').replace(/[^0-9.]/g, ''));
+
+    // Check if this row is a parent item
+    if (r.isParent || (priceNum === 0 && (!rawVar || rawVar === '—'))) {
+      return {
+        ...r,
+        Name: rawName,
+        Item_Online_DisplayName: rawName,
+        Variation_Name: '',
+        Price: '0',
+        isParent: true,
+        isVariation: false,
+        Goods_Services: '',
+      };
+    }
+
+    // If row has variation text
+    if (hasVariation) {
+      const hasParentItem = parentNames.has(nameLower);
+
+      // If NO parent item exists for this dish:
+      // Convert to standalone item with variation in parentheses: "Sprite (200ml)"
+      if (!hasParentItem) {
+        const formattedName = appendVariationToName(rawName, rawVar);
+        return {
+          ...r,
+          Name: formattedName,
+          Item_Online_DisplayName: formattedName, // Keep identical to Name
+          Variation_Name: '', // Left blank as requested
+          isVariation: false,
+          isParent: false,
+          Goods_Services: '',
+        };
+      }
+
+      // If it DOES have a parent item, it is a valid child variation
+      return {
+        ...r,
+        Name: rawName,
+        Item_Online_DisplayName: rawName,
+        Variation_Name: rawVar,
+        isVariation: true,
+        isParent: false,
+        Goods_Services: '',
+      };
+    }
+
+    // Regular item without variation
+    return {
+      ...r,
+      Name: rawName,
+      Item_Online_DisplayName: rawName,
+      Variation_Name: '',
+      isVariation: false,
+      isParent: false,
+      Goods_Services: '',
+    };
+  });
+}
+
+/**
+ * Counts how many rows have an orphan variation (variation exists but no parent item).
+ */
+export function countOrphanVariations(rows: MenuItemRow[]): number {
+  if (!rows || rows.length === 0) return 0;
+
+  const parentNames = new Set<string>();
+  for (const r of rows) {
+    const priceNum = parseFloat(String(r.Price || '0').replace(/[^0-9.]/g, ''));
+    const isVarEmpty = !r.Variation_Name || r.Variation_Name.trim() === '' || r.Variation_Name.trim() === '—';
+    if (r.isParent || (priceNum === 0 && isVarEmpty)) {
+      if (r.Name && r.Name.trim()) {
+        parentNames.add(r.Name.trim().toLowerCase());
+      }
+    }
+  }
+
+  let count = 0;
+  for (const r of rows) {
+    const rawVar = (r.Variation_Name || '').trim();
+    if (rawVar && rawVar !== '—') {
+      const nameLower = (r.Name || '').trim().toLowerCase();
+      if (!parentNames.has(nameLower)) {
+        count++;
+      }
+    }
+  }
+  return count;
 }

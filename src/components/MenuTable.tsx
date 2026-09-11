@@ -22,6 +22,7 @@ import {
 import { MenuItemRow, DietaryType, MenuOutputLanguage, SUPPORTED_LANGUAGES } from '../types';
 import { exportToExcel, exportToCsv, copyToClipboardTsv, POS_COLUMNS } from '../utils/exportUtils';
 import { normalizeDietary, getDietaryCounts } from '../utils/dietaryUtils';
+import { countOrphanVariations } from '../utils/shortCodeUtils';
 
 interface MenuTableProps {
   rows: MenuItemRow[];
@@ -64,6 +65,9 @@ export const MenuTable: React.FC<MenuTableProps> = ({
 
   // Dietary counts for quick badges
   const dietaryCounts = useMemo(() => getDietaryCounts(rows), [rows]);
+
+  // Count orphan variations (items with variation label but no parent item)
+  const orphanVariationCount = useMemo(() => countOrphanVariations(rows), [rows]);
 
   // Filtered rows
   const filteredRows = useMemo(() => {
@@ -391,6 +395,27 @@ export const MenuTable: React.FC<MenuTableProps> = ({
         </span>
       </div>
 
+      {/* Orphan Variations Alert & Quick Fix */}
+      {orphanVariationCount > 0 && (
+        <div className="px-4 py-2.5 bg-amber-50 border-b border-amber-200 text-xs text-amber-900 flex flex-wrap items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>
+              <strong>{orphanVariationCount} item(s)</strong> have variations without a parent dish (e.g. Sprite 200ml). In POS, single items should be written as <strong>Name (200ml)</strong> with blank variation.
+            </span>
+          </div>
+          {onRegenerateShortCodes && (
+            <button
+              onClick={onRegenerateShortCodes}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg shadow-2xs text-xs transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Merge Variations into Name ( )</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Table Container */}
       <div className="overflow-x-auto max-h-[580px] scrollbar-thin">
         <table className="w-full text-left border-collapse text-xs">
@@ -422,7 +447,7 @@ export const MenuTable: React.FC<MenuTableProps> = ({
           <tbody className="divide-y divide-slate-200/80 bg-white">
             {filteredRows.map((row, idx) => {
               const isParent = row.isParent || (String(row.Price) === '0' && (!row.Variation_Name || row.Variation_Name === ''));
-              const isVariation = Boolean(row.Variation_Name && row.Variation_Name.trim() !== '');
+              const isVariation = row.isVariation !== undefined ? row.isVariation : Boolean(row.Variation_Name && row.Variation_Name.trim() !== '');
               const dietaryTag =
                 row.Attributes === 'Veg' || row.Attributes === 'Non-Veg' || row.Attributes === 'Egg'
                   ? row.Attributes

@@ -115,7 +115,11 @@ export const MenuTable: React.FC<MenuTableProps> = ({
   };
 
   const handleCellChange = (id: string, field: keyof MenuItemRow, value: string) => {
-    onUpdateRow(id, { [field]: value });
+    if (field === 'Name') {
+      onUpdateRow(id, { Name: value, Item_Online_DisplayName: value });
+    } else {
+      onUpdateRow(id, { [field]: value });
+    }
   };
 
   if (rows.length === 0) {
@@ -590,9 +594,10 @@ export const MenuTable: React.FC<MenuTableProps> = ({
                   <td className="p-2">
                     <input
                       type="text"
-                      value={row.Goods_Services}
+                      value={row.Goods_Services || ''}
+                      placeholder="(Blank)"
                       onChange={(e) => handleCellChange(row.id, 'Goods_Services', e.target.value)}
-                      className="w-full bg-transparent focus:bg-white focus:ring-1 focus:ring-emerald-500 rounded px-1.5 py-0.5 text-xs text-slate-600"
+                      className="w-full bg-transparent focus:bg-white focus:ring-1 focus:ring-emerald-500 rounded px-1.5 py-0.5 text-xs text-slate-600 placeholder:text-slate-300 placeholder:italic"
                     />
                   </td>
 

@@ -61,7 +61,7 @@ export const SUPPORTED_LANGUAGES: LanguageOption[] = [
 export interface MenuItemRow {
   id: string;
   Name: string;
-  Item_Online_DisplayName: string;
+  Item_Online_DisplayName: string; // Strictly identical to Name for POS compatibility
   Variation_Name: string;
   Price: string | number;
   Category: string;
@@ -69,8 +69,8 @@ export interface MenuItemRow {
   Short_Code: string;
   Short_Code_2: string;
   Description: string;
-  Attributes: string; // e.g. "Veg", "Non-Veg", "Egg", "Spicy"
-  Goods_Services: string; // "Goods" or "Services"
+  Attributes: string; // Strictly "Veg", "Non-Veg", "Egg"
+  Goods_Services: string; // Left blank ("") as required
   isParent?: boolean;
   isVariation?: boolean;
 }

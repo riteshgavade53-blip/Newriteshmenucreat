@@ -13,7 +13,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Cottage cheese cubes simmered in rich creamy tomato and butter gravy',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isParent: true,
   },
   {
@@ -28,7 +28,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Half portion for 1 person',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isVariation: true,
   },
   {
@@ -43,7 +43,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Full portion for 2-3 persons',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isVariation: true,
   },
   {
@@ -58,7 +58,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Tender tandoori chicken cooked in velvety tomato butter gravy',
     Attributes: 'Non-Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isParent: true,
   },
   {
@@ -73,7 +73,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: '2 pieces portion',
     Attributes: 'Non-Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isVariation: true,
   },
   {
@@ -88,7 +88,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: '4 pieces portion',
     Attributes: 'Non-Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isVariation: true,
   },
   {
@@ -103,7 +103,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Slow-cooked black lentils finished with cream and organic butter',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
   },
   {
     id: 'row-8',
@@ -117,7 +117,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Boneless chicken marinated with Kashmiri chili and roasted spices in clay oven',
     Attributes: 'Non-Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
   },
   {
     id: 'row-9',
@@ -131,7 +131,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Golden fried sweet corn tossed with spring onions and crushed pepper',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
   },
   {
     id: 'row-10',
@@ -145,7 +145,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Aromatic basmati rice cooked on slow flame with whole spices and saffron',
     Attributes: 'Non-Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isParent: true,
   },
   {
@@ -160,7 +160,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Prepared with farm fresh vegetables and paneer',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isVariation: true,
   },
   {
@@ -175,7 +175,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Prepared with marinated bone-in chicken pieces',
     Attributes: 'Non-Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isVariation: true,
   },
   {
@@ -190,7 +190,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Succulent baby goat cuts in fragrant rice',
     Attributes: 'Non-Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isVariation: true,
   },
   {
@@ -205,7 +205,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Refined flour bread topped with minced garlic and butter',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
   },
   {
     id: 'row-15',
@@ -219,7 +219,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Thick churned sweet yogurt with Alphonso mango pulp',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
   },
   {
     id: 'row-16',
@@ -233,7 +233,7 @@ export const NORTH_INDIAN_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Hot mawa dumplings served over chilled saffron rabdi (2 Pcs)',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
   }
 ];
 
@@ -250,7 +250,7 @@ export const CAFE_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: '18-hour slow steep single origin Arabica coffee',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isParent: true,
   },
   {
@@ -265,7 +265,7 @@ export const CAFE_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: '300ml served over crystal ice',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isVariation: true,
   },
   {
@@ -280,7 +280,7 @@ export const CAFE_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: '450ml served over crystal ice',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isVariation: true,
   },
   {
@@ -295,7 +295,7 @@ export const CAFE_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Three layer jumbo sandwich toasted with spicy peri peri sauce and cheese',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isParent: true,
   },
   {
@@ -310,7 +310,7 @@ export const CAFE_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Filled with spiced paneer and bell peppers',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isVariation: true,
   },
   {
@@ -325,7 +325,7 @@ export const CAFE_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Filled with smoked shredded chicken and mozzarella',
     Attributes: 'Non-Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
     isVariation: true,
   },
   {
@@ -340,7 +340,7 @@ export const CAFE_SAMPLE_DATA: MenuItemRow[] = [
     Short_Code_2: '',
     Description: 'Golden shoestring potatoes tossed with white truffle oil and parmesan',
     Attributes: 'Veg',
-    Goods_Services: 'Goods',
+    Goods_Services: '',
   }
 ];
 
@@ -392,10 +392,10 @@ Truffle Fries - 170`,
     description: 'Matches the exact sample_extraction.csv from the original GitHub repository.',
     itemCount: 4,
     sampleText: `Name,Item_Online_DisplayName,Variation_Name,Price,Category,Category_Online_DisplayName,Short_Code,Short_Code_2,Description,Attributes,Goods_Services
-"Classic T-Shirt","Classic T-Shirt","","0","Apparel","Clothing","TS-001","","Base product for variations","","Goods"
-"Classic T-Shirt","Classic T-Shirt","Small","$15.00","Apparel","Clothing","TS-001-S","","Small size variation","Size: Small","Goods"
-"Classic T-Shirt","Classic T-Shirt","Large","$18.00","Apparel","Clothing","TS-001-L","","Large size variation","Size: Large","Goods"
-"Consultation Fee","Consultation Fee","","$150.00","Services","Professional","","","One hour consultation","","Services"`,
+"Classic T-Shirt","Classic T-Shirt","","0","Apparel","Clothing","TS-001","","Base product for variations","",""
+"Classic T-Shirt","Classic T-Shirt","Small","$15.00","Apparel","Clothing","TS-001-S","","Small size variation","Size: Small",""
+"Classic T-Shirt","Classic T-Shirt","Large","$18.00","Apparel","Clothing","TS-001-L","","Large size variation","Size: Large",""
+"Consultation Fee","Consultation Fee","","$150.00","","Professional","","","One hour consultation","",""`,
     defaultRows: [
       {
         id: 'csv-1',
@@ -409,7 +409,7 @@ Truffle Fries - 170`,
         Short_Code_2: '',
         Description: 'Base product for variations',
         Attributes: '',
-        Goods_Services: 'Goods',
+        Goods_Services: '',
         isParent: true,
       },
       {
@@ -424,7 +424,7 @@ Truffle Fries - 170`,
         Short_Code_2: '',
         Description: 'Small size variation',
         Attributes: 'Size: Small',
-        Goods_Services: 'Goods',
+        Goods_Services: '',
         isVariation: true,
       },
       {
@@ -439,7 +439,7 @@ Truffle Fries - 170`,
         Short_Code_2: '',
         Description: 'Large size variation',
         Attributes: 'Size: Large',
-        Goods_Services: 'Goods',
+        Goods_Services: '',
         isVariation: true,
       },
       {
@@ -454,7 +454,7 @@ Truffle Fries - 170`,
         Short_Code_2: '',
         Description: 'One hour consultation',
         Attributes: '',
-        Goods_Services: 'Services',
+        Goods_Services: '',
       }
     ]
   }

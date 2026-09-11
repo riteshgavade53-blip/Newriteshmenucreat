@@ -303,13 +303,18 @@ export async function extractMenuData(params: {
 
     const systemInstruction = `You are an expert restaurant menu parser for modern POS systems.
 Extract every item into 11 columns: Name, Item_Online_DisplayName, Variation_Name, Price, Category, Category_Online_DisplayName, Short_Code, Short_Code_2, Description, Attributes, Goods_Services.
+CRITICAL NAME & DISPLAY NAME RULE:
+- Name: Base item name (e.g. "Lollypop Oil Fry").
+- Item_Online_DisplayName: MUST BE EXACTLY IDENTICAL TO Name (e.g. "Lollypop Oil Fry"). DO NOT append variation labels, piece counts like "(4 pcs)", "(8 pcs)", or special tags. Whatever string is in Name, keep the exact same string in Item_Online_DisplayName.
+- Goods_Services: MUST BE COMPLETELY BLANK (empty string ""). Never output "Goods" or "Services", keep it blank "".
+
 CRITICAL SHORT CODE RULE (Alphabetic POS Format):
 - Short_Code must be Alphabetic: take the first letter of each of the first 3 major words (e.g. "Hyderabadi Chicken Dum Biryani" -> "HCD", "Chicken Seekh Kebab" -> "CSK", "Paneer Butter Masala" -> "PBM", "Dal Makhani" -> "DM").
 - For parent dishes: Base alphabetic code (e.g. "HCD").
 - For child variations: Base code + sequential digit without hyphen (e.g. 1st variation -> "HCD1", 2nd variation -> "HCD2", 3rd variation -> "HCD3").
 - If another dish gets same acronym, append sequential digit (e.g. "CSK1", "CSK2").
-CRITICAL: For items with variations (e.g. Half/Full or slash prices like 140/260), first create a PARENT row with Price="0" and Variation_Name="", followed by CHILD rows for each variation with their respective prices.
-For single items without variations, create a single row with actual Price and Variation_Name="".
+CRITICAL: For items with variations (e.g. Half/Full, 4 pcs/8 pcs, or slash prices like 140/260), first create a PARENT row with Price="0", Variation_Name="", followed by CHILD rows for each variation with their respective prices. In both parent and child rows, Name and Item_Online_DisplayName must be the exact same dish name.
+For single items without variations, create a single row with actual Price, empty Variation_Name="", and Item_Online_DisplayName identical to Name.
 
 ${getClientLanguageInstruction(outputLanguage)}`;
 
@@ -381,10 +386,11 @@ ${getClientLanguageInstruction(outputLanguage)}`;
       const isParent = priceStr === '0' && (!item.Variation_Name || item.Variation_Name.trim() === '');
       const isVariation = Boolean(item.Variation_Name && item.Variation_Name.trim() !== '');
 
+      const name = (item.Name || 'Unnamed Item').trim();
       return {
         id: `client-${Date.now()}-${idx}`,
-        Name: item.Name || 'Unnamed Item',
-        Item_Online_DisplayName: item.Item_Online_DisplayName || item.Name || 'Unnamed Item',
+        Name: name,
+        Item_Online_DisplayName: name, // STRICTLY identical to Name
         Variation_Name: item.Variation_Name || '',
         Price: priceStr || '0',
         Category: item.Category || 'General',
@@ -393,7 +399,7 @@ ${getClientLanguageInstruction(outputLanguage)}`;
         Short_Code_2: item.Short_Code_2 || '',
         Description: item.Description || '',
         Attributes: item.Attributes || 'Veg',
-        Goods_Services: item.Goods_Services || 'Goods',
+        Goods_Services: '', // Blank as requested
         isParent,
         isVariation,
       };
@@ -526,14 +532,16 @@ ${JSON.stringify(
 
     return rows.map((orig, idx) => {
       const tr = translatedList.find((t: any) => t.id === orig.id) || translatedList[idx] || {};
+      const name = (tr.Name || orig.Name || '').trim();
       return {
         ...orig,
-        Name: tr.Name || orig.Name,
-        Item_Online_DisplayName: tr.Item_Online_DisplayName || tr.Name || orig.Item_Online_DisplayName,
+        Name: name,
+        Item_Online_DisplayName: name, // STRICTLY identical to Name
         Variation_Name: tr.Variation_Name !== undefined ? tr.Variation_Name : orig.Variation_Name,
         Category: tr.Category || orig.Category,
         Category_Online_DisplayName: tr.Category_Online_DisplayName || tr.Category || orig.Category_Online_DisplayName,
         Description: tr.Description !== undefined ? tr.Description : orig.Description,
+        Goods_Services: '', // Blank as requested
         Attributes:
           orig.Attributes === 'Veg' || orig.Attributes === 'Non-Veg' || orig.Attributes === 'Egg'
             ? orig.Attributes

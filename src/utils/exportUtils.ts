@@ -30,9 +30,13 @@ export function sanitizeRowsForExport(rows: MenuItemRow[]): Record<string, strin
       finalTag = normalizeDietary(rawAttr, row.Name, row.Category, row.Description, row.Variation_Name);
     }
 
+    const name = (row.Name || '').trim();
+    // Rule: Item_Online_DisplayName must be identical to Name
+    const displayName = name || (row.Item_Online_DisplayName || '').trim();
+
     return {
-      Name: row.Name || '',
-      Item_Online_DisplayName: row.Item_Online_DisplayName || row.Name || '',
+      Name: name,
+      Item_Online_DisplayName: displayName,
       Variation_Name: row.Variation_Name || '',
       Price: String(row.Price ?? ''),
       Category: row.Category || 'General',
@@ -41,7 +45,7 @@ export function sanitizeRowsForExport(rows: MenuItemRow[]): Record<string, strin
       Short_Code_2: row.Short_Code_2 || '',
       Description: row.Description || '',
       Attributes: finalTag,
-      Goods_Services: row.Goods_Services || 'Goods',
+      Goods_Services: '', // Strictly blank as requested
     };
   });
 }

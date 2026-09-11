@@ -210,22 +210,28 @@ export default function App() {
       const target = prev.find((r) => r.id === id);
       if (!target) return prev;
 
+      // Ensure if Name is edited, Item_Online_DisplayName matches Name exactly
+      const patch: Partial<MenuItemRow> = { ...updatedRow };
+      if (updatedRow.Name !== undefined && updatedRow.Item_Online_DisplayName === undefined) {
+        patch.Item_Online_DisplayName = updatedRow.Name;
+      }
+
       // If user is updating dietary Attributes on a parent dish, also cascade to its variations
-      if (updatedRow.Attributes && (target.isParent || (!target.Variation_Name && (target.Price === '0' || !target.Price)))) {
+      if (patch.Attributes && (target.isParent || (!target.Variation_Name && (target.Price === '0' || !target.Price)))) {
         const parentName = target.Name.trim().toLowerCase();
         return prev.map((r) => {
           if (r.id === id) {
-            return { ...r, ...updatedRow };
+            return { ...r, ...patch };
           }
           // If this is a child variation of this parent (same Name and has Variation_Name)
           if (parentName && r.Name.trim().toLowerCase() === parentName && r.Variation_Name) {
-            return { ...r, Attributes: updatedRow.Attributes! };
+            return { ...r, Attributes: patch.Attributes! };
           }
           return r;
         });
       }
 
-      return prev.map((r) => (r.id === id ? { ...r, ...updatedRow } : r));
+      return prev.map((r) => (r.id === id ? { ...r, ...patch } : r));
     });
   };
 
@@ -242,6 +248,8 @@ export default function App() {
         ...target,
         id: `dup-${Date.now()}`,
         Name: `${target.Name} (Copy)`,
+        Item_Online_DisplayName: `${target.Name} (Copy)`,
+        Goods_Services: '',
       };
       const next = [...prev];
       next.splice(idx + 1, 0, copy);
@@ -262,15 +270,20 @@ export default function App() {
       Short_Code_2: '',
       Description: '',
       Attributes: 'Veg',
-      Goods_Services: 'Goods',
+      Goods_Services: '',
     };
     setRows((prev) => assignStandardShortCodes([...prev, newRow], false));
   };
 
   const handleRegenerateShortCodes = () => {
     if (rows.length === 0) return;
-    setRows((prev) => assignStandardShortCodes(prev, true));
-    showToast('⚡ Short codes standard Alphabetic format me update ho gaye (e.g. HCD, HCD1, CSK)!');
+    const sanitized = rows.map((r) => ({
+      ...r,
+      Item_Online_DisplayName: r.Name,
+      Goods_Services: '',
+    }));
+    setRows(assignStandardShortCodes(sanitized, true));
+    showToast('⚡ Short codes & POS format updated (Name = Item_Online_DisplayName, Goods_Services blank)!');
   };
 
   const handleClearRows = () => {

@@ -216,17 +216,17 @@ export async function deleteSavedMenu(menuId: string): Promise<boolean> {
  */
 export function exportSavedMenuToExcel(menu: SavedMenu): void {
   const exportRows = menu.rows.map((r) => ({
-    Name: r.Name,
-    Item_Online_DisplayName: r.Item_Online_DisplayName,
-    Variation_Name: r.Variation_Name,
-    Price: r.Price,
-    Category: r.Category,
-    Category_Online_DisplayName: r.Category_Online_DisplayName,
-    Short_Code: r.Short_Code,
-    Short_Code_2: r.Short_Code_2,
-    Description: r.Description,
-    Attributes: r.Attributes,
-    Goods_Services: r.Goods_Services,
+    Name: r.Name || '',
+    Item_Online_DisplayName: r.Name || r.Item_Online_DisplayName || '',
+    Variation_Name: r.Variation_Name || '',
+    Price: r.Price || '0',
+    Category: r.Category || '',
+    Category_Online_DisplayName: r.Category_Online_DisplayName || r.Category || '',
+    Short_Code: r.Short_Code || '',
+    Short_Code_2: r.Short_Code_2 || '',
+    Description: r.Description || '',
+    Attributes: r.Attributes || 'Veg',
+    Goods_Services: '', // Strictly blank
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(exportRows, {

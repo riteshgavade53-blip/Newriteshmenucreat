@@ -147,9 +147,9 @@ Your job is to accurately extract restaurant menu items from documents (images, 
 
 CRITICAL RULES FOR 11-COLUMN POS MENU FORMAT:
 1. Columns must follow this structure:
-   - Name: Item name
-   - Item_Online_DisplayName: Customer-facing item name (usually same as Name)
-   - Variation_Name: Name of variation (e.g. "Half", "Full", "Small", "Medium", "Large", "Regular", "1 Pc", "2 Pcs", "Veg", "Chicken", "500ml", "1L"). If single item with no variation, leave empty "".
+   - Name: Item name (e.g. "Lollypop Oil Fry")
+   - Item_Online_DisplayName: MUST BE EXACTLY IDENTICAL TO Name (e.g. "Lollypop Oil Fry"). DO NOT append piece counts like "(4 pcs)", "(8 pcs)", variation names, or special suffixes like "(Chef's Spl.)". Whatever string is in Name, keep the exact same string in Item_Online_DisplayName.
+   - Variation_Name: Name of variation (e.g. "Half", "Full", "Small", "Medium", "Large", "Regular", "4 pcs", "8 pcs", "1 Pc", "2 Pcs", "Veg", "Chicken", "500ml", "1L"). If single item with no variation, leave empty "".
    - Price: Numeric price as string (e.g. "180" or "180.00"). Do NOT include currency symbols like ₹, $, Rs.
    - Category: Menu category (e.g. "Starters", "Soups", "Main Course", "Tandoor", "Breads", "Biryani & Rice", "Beverages", "Desserts", "Pizzas", "Burgers").
    - Category_Online_DisplayName: Online display category name (usually same as Category).
@@ -165,31 +165,31 @@ CRITICAL RULES FOR 11-COLUMN POS MENU FORMAT:
      * "Non-Veg" for all non-vegetarian dishes (chicken, mutton, fish, prawns, seafood, meat, pork, beef).
      * "Egg" for all egg-containing dishes (egg curry, omelette, boiled egg, egg bhurji, egg fried rice, egg biryani, etc.).
      NEVER leave Attributes empty. Regardless of menu language, ALWAYS output Attributes strictly as "Veg", "Non-Veg", or "Egg" so it imports properly into Excel and POS.
-   - Goods_Services: Always "Goods" for food & drinks.
+   - Goods_Services: MUST BE COMPLETELY BLANK (empty string ""). Never output "Goods" or "Services", keep it completely empty "".
 
 2. VARIATIONS & PARENT-CHILD RULE (CRITICAL FOR POS):
-   - Whenever an item has multiple sizes/portions/variations (e.g., slash-separated prices like "140/260", or explicit options like "Half/Full", "Small/Medium/Large", "Single/Double"):
+   - Whenever an item has multiple sizes/portions/variations (e.g., slash-separated prices like "140/260", or explicit options like "Half/Full", "Small/Medium/Large", "4 pcs/8 pcs", "Single/Double"):
      A. Create ONE PARENT ROW FIRST:
-        - Name: Base dish name (e.g. "Hyderabadi Chicken Dum Biryani")
-        - Item_Online_DisplayName: Base dish name
+        - Name: Base dish name (e.g. "Lollypop Oil Fry")
+        - Item_Online_DisplayName: EXACT SAME base dish name as Name (e.g. "Lollypop Oil Fry")
         - Variation_Name: ""
         - Price: "0"  (CRITICAL: Parent row price in POS MUST ALWAYS BE 0)
         - Category: Category name
         - Category_Online_DisplayName: Category name
-        - Short_Code: Base alphabetic code (e.g. "HCD")
+        - Short_Code: Base alphabetic code (e.g. "LOF")
         - Attributes: Dietary tag (e.g. "Non-Veg")
-        - Goods_Services: "Goods"
+        - Goods_Services: "" (leave completely blank)
      B. Create CHILD ROWS for EACH variation immediately under the parent:
-        - Name: EXACT same base dish name as parent (e.g. "Hyderabadi Chicken Dum Biryani")
-        - Item_Online_DisplayName: EXACT same base dish name as parent
-        - Variation_Name: Variation label (e.g. "Qtr. (1 Leg)", "Half (2 Leg)", "Full (4 Leg)")
-        - Price: The actual variation price (e.g. "159", "299", "549")
+        - Name: EXACT same base dish name as parent (e.g. "Lollypop Oil Fry")
+        - Item_Online_DisplayName: EXACT same base dish name as parent (e.g. "Lollypop Oil Fry" - NEVER put variation or piece count here!)
+        - Variation_Name: Variation label (e.g. "4 pcs", "8 pcs", "Half", "Full")
+        - Price: The actual variation price (e.g. "159", "299")
         - Category: Same Category
         - Category_Online_DisplayName: Same Category
-        - Short_Code: Base code + variation digit without hyphen (e.g. "HCD1", "HCD2", "HCD3")
+        - Short_Code: Base code + variation digit without hyphen (e.g. "LOF1", "LOF2")
         - Attributes: Dietary tag
-        - Goods_Services: "Goods"
-   - If an item does NOT have variations, create a single row with its actual price and empty Variation_Name (e.g. "Chicken Seekh Kebab (4Pcs)" -> Short_Code "CSK").
+        - Goods_Services: "" (leave completely blank)
+   - If an item does NOT have variations, create a single row with its actual price and empty Variation_Name (e.g. "Chicken Seekh Kebab" -> Short_Code "CSK"). Item_Online_DisplayName must be identical to Name.
 
 3. Extract ALL items from the menu without skipping any categories or items.
 4. Clean up any OCR artifacts, price symbols, or accidental characters.`;
@@ -205,7 +205,7 @@ function getExtractionSystemInstruction(language: string = 'english'): string {
    - Culinary dish names must be accurate in Devanagari (e.g. "पनीर बटर मसाला", "दाल मखनी", "कढ़ाई पनीर", "मसाला डोसा", "तंदूरी रोटी", "गुलाब जामुन").
    - Categories in Hindi (e.g. "स्टार्टर्स", "मुख्य भोजन", "रोटी व नान", "चावल व बिरयानी", "पेय पदार्थ", "मिठाई").
    - Attributes: ALWAYS "Veg", "Non-Veg", or "Egg" (keep in English for POS & Excel standard compatibility).
-   - Price must remain strictly numeric (e.g. "180" or "0"). Goods_Services is always "Goods".`;
+   - Price must remain strictly numeric (e.g. "180" or "0"). Goods_Services is always completely blank "".`;
       break;
 
     case 'marathi':
@@ -214,7 +214,7 @@ function getExtractionSystemInstruction(language: string = 'english'): string {
    - Food names authentic in Marathi (e.g. "पनीर बटर मसाला", "मटण सुक्का", "मिसळ पाव", "वरण भात", "सोलकढी", "कोथिंबीर वडी").
    - Categories in Marathi (e.g. "सुरुवात / स्टार्टर्स", "मुख्य जेवण", "रोटी आणि भाकरी", "भात व पुलाव", "पेये / सरबत", "मिष्टान्न / गोडधोड").
    - Attributes: ALWAYS "Veg", "Non-Veg", or "Egg" (keep in English for POS & Excel standard compatibility).
-   - Price must remain strictly numeric (e.g. "180" or "0"). Goods_Services is always "Goods".`;
+   - Price must remain strictly numeric (e.g. "180" or "0"). Goods_Services is always completely blank "".`;
       break;
 
     case 'gujarati':
@@ -223,7 +223,7 @@ function getExtractionSystemInstruction(language: string = 'english'): string {
    - Food names authentic in Gujarati (e.g. "પનીર બટર મસાલા", "દાળ ફ્રાય", "ખમણ ઢોકળા", "સેવ ટામેટા શાક", "રોટલી / ભાખરી", "ગુલાબ જાંબુ").
    - Categories in Gujarati (e.g. "સ્ટાર્ટર્સ / નાસ્તો", "મુખ્ય વાનગી / શાક", "રોટલી અને પરોઠા", "દાળ-ભાત", "પીણાં", "મિઠાઈ").
    - Attributes: ALWAYS "Veg", "Non-Veg", or "Egg" (keep in English for POS & Excel standard compatibility).
-   - Price must remain strictly numeric (e.g. "180" or "0"). Goods_Services is always "Goods".`;
+   - Price must remain strictly numeric (e.g. "180" or "0"). Goods_Services is always completely blank "".`;
       break;
 
     case 'hinglish':
@@ -233,7 +233,7 @@ function getExtractionSystemInstruction(language: string = 'english'): string {
    - Categories in Hinglish (e.g. "Shuruaat / Starters", "Khaas Sabziyan / Main Course", "Roti aur Paratha", "Chawal aur Biryani", "Thanda Peena / Drinks", "Meetha / Desserts").
    - Variations in Hinglish (e.g. "Half / Adha", "Full / Poora", "Small / Chhota", "Large / Bada", "1 Piece").
    - Attributes: ALWAYS "Veg", "Non-Veg", or "Egg" (keep in English for POS & Excel standard compatibility).
-   - Price must remain strictly numeric (e.g. "180" or "0"). Goods_Services is always "Goods".`;
+   - Price must remain strictly numeric (e.g. "180" or "0"). Goods_Services is always completely blank "".`;
       break;
 
     case 'english':
@@ -455,10 +455,11 @@ app.post('/api/extract-menu', async (req, res) => {
       const isParent = priceStr === '0' && (!item.Variation_Name || item.Variation_Name.trim() === '');
       const isVariation = Boolean(item.Variation_Name && item.Variation_Name.trim() !== '');
 
+      const name = (item.Name || 'Unnamed Item').trim();
       return {
         id: `extracted-${Date.now()}-${index}`,
-        Name: item.Name || 'Unnamed Item',
-        Item_Online_DisplayName: item.Item_Online_DisplayName || item.Name || 'Unnamed Item',
+        Name: name,
+        Item_Online_DisplayName: name, // STRICTLY identical to Name
         Variation_Name: item.Variation_Name || '',
         Price: priceStr || '0',
         Category: item.Category || 'General',
@@ -467,7 +468,7 @@ app.post('/api/extract-menu', async (req, res) => {
         Short_Code_2: item.Short_Code_2 || '',
         Description: item.Description || '',
         Attributes: item.Attributes || 'Veg',
-        Goods_Services: item.Goods_Services || 'Goods',
+        Goods_Services: '', // Blank as requested
         isParent,
         isVariation,
       };
@@ -594,14 +595,16 @@ STRICT MAPPING INSTRUCTIONS:
     // Map back with fallbacks
     const updatedRows = rows.map((origRow, index) => {
       const translated = translatedList.find((t: any) => t.id === origRow.id) || translatedList[index] || {};
+      const name = (translated.Name || origRow.Name || '').trim();
       return {
         ...origRow,
-        Name: translated.Name || origRow.Name,
-        Item_Online_DisplayName: translated.Item_Online_DisplayName || translated.Name || origRow.Item_Online_DisplayName,
+        Name: name,
+        Item_Online_DisplayName: name, // STRICTLY identical to Name
         Variation_Name: translated.Variation_Name !== undefined ? translated.Variation_Name : origRow.Variation_Name,
         Category: translated.Category || origRow.Category,
         Category_Online_DisplayName: translated.Category_Online_DisplayName || translated.Category || origRow.Category_Online_DisplayName,
         Description: translated.Description !== undefined ? translated.Description : origRow.Description,
+        Goods_Services: '', // Blank as requested
         Attributes:
           origRow.Attributes === 'Veg' || origRow.Attributes === 'Non-Veg' || origRow.Attributes === 'Egg'
             ? origRow.Attributes

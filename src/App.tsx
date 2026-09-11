@@ -13,6 +13,7 @@ import {
   detectFileType,
 } from './utils/geminiExtractor';
 import { trackVisit } from './utils/savedMenusManager';
+import { assignStandardShortCodes } from './utils/shortCodeUtils';
 import { ShieldCheck, CheckCircle2 } from 'lucide-react';
 
 export default function App() {
@@ -257,13 +258,19 @@ export default function App() {
       Price: '100',
       Category: 'Main Course',
       Category_Online_DisplayName: 'Main Course',
-      Short_Code: 'NEW-01',
+      Short_Code: '',
       Short_Code_2: '',
       Description: '',
       Attributes: 'Veg',
       Goods_Services: 'Goods',
     };
-    setRows((prev) => [newRow, ...prev]);
+    setRows((prev) => assignStandardShortCodes([...prev, newRow], false));
+  };
+
+  const handleRegenerateShortCodes = () => {
+    if (rows.length === 0) return;
+    setRows((prev) => assignStandardShortCodes(prev, true));
+    showToast('⚡ Short codes standard Alphabetic format me update ho gaye (e.g. HCD, HCD1, CSK)!');
   };
 
   const handleClearRows = () => {
@@ -374,6 +381,7 @@ export default function App() {
             onDuplicateRow={handleDuplicateRow}
             onAddRow={handleAddRow}
             onClearRows={handleClearRows}
+            onRegenerateShortCodes={handleRegenerateShortCodes}
             restaurantName={restaurantName}
             currentLanguage={outputLanguage}
             onTranslateLanguage={handleTranslateLanguage}

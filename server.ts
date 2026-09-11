@@ -7,6 +7,7 @@ import mammoth from 'mammoth';
 import { GoogleGenAI, Type } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
 import { normalizeDietary, normalizeRowsDietary } from './src/utils/dietaryUtils';
+import { assignStandardShortCodes } from './src/utils/shortCodeUtils';
 
 dotenv.config();
 
@@ -152,7 +153,11 @@ CRITICAL RULES FOR 11-COLUMN POS MENU FORMAT:
    - Price: Numeric price as string (e.g. "180" or "180.00"). Do NOT include currency symbols like ₹, $, Rs.
    - Category: Menu category (e.g. "Starters", "Soups", "Main Course", "Tandoor", "Breads", "Biryani & Rice", "Beverages", "Desserts", "Pizzas", "Burgers").
    - Category_Online_DisplayName: Online display category name (usually same as Category).
-   - Short_Code: Short SKU abbreviation (e.g. "PBM", "PBM-H", "DM"). Generate a clean logical code if not in menu.
+   - Short_Code: MANDATORY Alphabetic POS SKU Code:
+     * Generate base code from first letter of each of the first 3 major words (e.g. "Hyderabadi Chicken Dum Biryani" -> "HCD", "Chicken Seekh Kebab" -> "CSK", "Paneer Butter Masala" -> "PBM", "Dal Makhani" -> "DM").
+     * For parent dishes: Base alphabetic code (e.g. "HCD").
+     * For child variations: Base code + sequential digit without hyphens (e.g. 1st variation -> "HCD1", 2nd variation -> "HCD2", 3rd variation -> "HCD3").
+     * If another different dish generates the same acronym, append a sequential digit to keep it unique (e.g. "CSK1", "CSK2").
    - Short_Code_2: Secondary code (usually empty "").
    - Description: Dish description or ingredients if mentioned in menu.
    - Attributes: MANDATORY DIETARY TAG. Strictly one of three values:
@@ -165,26 +170,26 @@ CRITICAL RULES FOR 11-COLUMN POS MENU FORMAT:
 2. VARIATIONS & PARENT-CHILD RULE (CRITICAL FOR POS):
    - Whenever an item has multiple sizes/portions/variations (e.g., slash-separated prices like "140/260", or explicit options like "Half/Full", "Small/Medium/Large", "Single/Double"):
      A. Create ONE PARENT ROW FIRST:
-        - Name: Base dish name (e.g. "Paneer Butter Masala")
+        - Name: Base dish name (e.g. "Hyderabadi Chicken Dum Biryani")
         - Item_Online_DisplayName: Base dish name
         - Variation_Name: ""
         - Price: "0"  (CRITICAL: Parent row price in POS MUST ALWAYS BE 0)
         - Category: Category name
         - Category_Online_DisplayName: Category name
-        - Short_Code: Base code (e.g. "PBM")
-        - Attributes: Dietary tag (e.g. "Veg")
+        - Short_Code: Base alphabetic code (e.g. "HCD")
+        - Attributes: Dietary tag (e.g. "Non-Veg")
         - Goods_Services: "Goods"
      B. Create CHILD ROWS for EACH variation immediately under the parent:
-        - Name: EXACT same base dish name as parent (e.g. "Paneer Butter Masala")
+        - Name: EXACT same base dish name as parent (e.g. "Hyderabadi Chicken Dum Biryani")
         - Item_Online_DisplayName: EXACT same base dish name as parent
-        - Variation_Name: Variation label (e.g. "Half", "Full", "Small", "Medium", "Large")
-        - Price: The actual variation price (e.g. "160", "280")
+        - Variation_Name: Variation label (e.g. "Qtr. (1 Leg)", "Half (2 Leg)", "Full (4 Leg)")
+        - Price: The actual variation price (e.g. "159", "299", "549")
         - Category: Same Category
         - Category_Online_DisplayName: Same Category
-        - Short_Code: Base code + variation suffix (e.g. "PBM-H", "PBM-F")
+        - Short_Code: Base code + variation digit without hyphen (e.g. "HCD1", "HCD2", "HCD3")
         - Attributes: Dietary tag
         - Goods_Services: "Goods"
-   - If an item does NOT have variations, create a single row with its actual price and empty Variation_Name.
+   - If an item does NOT have variations, create a single row with its actual price and empty Variation_Name (e.g. "Chicken Seekh Kebab (4Pcs)" -> Short_Code "CSK").
 
 3. Extract ALL items from the menu without skipping any categories or items.
 4. Clean up any OCR artifacts, price symbols, or accidental characters.`;
@@ -469,13 +474,14 @@ app.post('/api/extract-menu', async (req, res) => {
     });
 
     const normalizedItems = normalizeRowsDietary(items);
+    const finalizedItems = assignStandardShortCodes(normalizedItems, true);
 
     return res.json({
       success: true,
       restaurantName: parsedData.restaurantName || '',
       currency: parsedData.currency || 'INR',
       outputLanguage: targetLang,
-      items: normalizedItems,
+      items: finalizedItems,
     });
   } catch (err: any) {
     console.error('Extraction error:', err);

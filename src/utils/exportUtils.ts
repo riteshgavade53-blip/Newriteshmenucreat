@@ -2,6 +2,7 @@ import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { MenuItemRow } from '../types';
 import { normalizeDietary, normalizeRowsDietary } from './dietaryUtils';
+import { assignStandardShortCodes } from './shortCodeUtils';
 
 export const POS_COLUMNS = [
   'Name',
@@ -18,7 +19,9 @@ export const POS_COLUMNS = [
 ] as const;
 
 export function sanitizeRowsForExport(rows: MenuItemRow[]): Record<string, string>[] {
-  return rows.map((row) => {
+  const preparedRows = assignStandardShortCodes(rows, false);
+
+  return preparedRows.map((row) => {
     const rawAttr = (row.Attributes || '').trim();
     let finalTag: string;
     if (rawAttr === 'Veg' || rawAttr === 'Non-Veg' || rawAttr === 'Egg') {

@@ -30,6 +30,7 @@ interface MenuTableProps {
   onDuplicateRow: (id: string) => void;
   onAddRow: () => void;
   onClearRows: () => void;
+  onRegenerateShortCodes?: () => void;
   restaurantName?: string;
   currentLanguage?: MenuOutputLanguage;
   onTranslateLanguage?: (targetLang: MenuOutputLanguage) => Promise<void>;
@@ -43,6 +44,7 @@ export const MenuTable: React.FC<MenuTableProps> = ({
   onDuplicateRow,
   onAddRow,
   onClearRows,
+  onRegenerateShortCodes,
   restaurantName,
   currentLanguage = 'english',
   onTranslateLanguage,
@@ -304,6 +306,17 @@ export const MenuTable: React.FC<MenuTableProps> = ({
 
         {/* Right: Export & Table Actions */}
         <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {onRegenerateShortCodes && (
+            <button
+              onClick={onRegenerateShortCodes}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold rounded-lg transition-colors border border-amber-200 shadow-2xs"
+              title="Recalculate all Short Codes into standard Alphabetic format (e.g. Hyderabadi Chicken Dum Biryani -> HCD, variations -> HCD1, HCD2, CSK)"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+              <span>Auto Short Codes</span>
+            </button>
+          )}
+
           <button
             onClick={onAddRow}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold rounded-lg transition-colors border border-slate-200"
@@ -366,11 +379,11 @@ export const MenuTable: React.FC<MenuTableProps> = ({
             POS Rule
           </span>
           <span>
-            Parent dishes have <strong>Price = 0</strong>, followed by child variation rows (Half/Full, Sizes) with their respective prices.
+            Parent dishes have <strong>Price = 0</strong> (e.g. Short_Code: <strong>HCD</strong>), followed by variations (e.g. <strong>HCD1, HCD2</strong>, or <strong>CSK</strong> for single items).
           </span>
         </div>
         <span className="text-emerald-700 italic hidden md:inline">
-          Tip: Click any cell to edit values inline before downloading.
+          Tip: Click any cell to edit values inline, or click "Auto Short Codes" to refresh SKU codes.
         </span>
       </div>
 
@@ -387,7 +400,12 @@ export const MenuTable: React.FC<MenuTableProps> = ({
               <th className="p-2.5 min-w-[90px]">4. Price</th>
               <th className="p-2.5 min-w-[130px]">5. Category</th>
               <th className="p-2.5 min-w-[130px]">6. Category_Online_DisplayName</th>
-              <th className="p-2.5 min-w-[100px]">7. Short_Code</th>
+              <th className="p-2.5 min-w-[110px]">
+                <div className="flex items-center justify-between">
+                  <span>7. Short_Code</span>
+                  <span className="text-[9px] bg-amber-100 text-amber-800 font-bold px-1 rounded">POS</span>
+                </div>
+              </th>
               <th className="p-2.5 min-w-[100px]">8. Short_Code_2</th>
               <th className="p-2.5 min-w-[200px]">9. Description</th>
               <th className="p-2.5 min-w-[100px]">10. Attributes</th>

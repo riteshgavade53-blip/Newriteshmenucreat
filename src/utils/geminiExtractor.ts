@@ -3,6 +3,7 @@ import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
 import { MenuItemRow, ExtractionResponse, MenuOutputLanguage } from '../types';
 import { normalizeDietary, normalizeRowsDietary } from './dietaryUtils';
+import { assignStandardShortCodes } from './shortCodeUtils';
 
 export const USER_GEMINI_KEY_STORAGE = 'menu_extractor_gemini_api_key';
 
@@ -302,6 +303,11 @@ export async function extractMenuData(params: {
 
     const systemInstruction = `You are an expert restaurant menu parser for modern POS systems.
 Extract every item into 11 columns: Name, Item_Online_DisplayName, Variation_Name, Price, Category, Category_Online_DisplayName, Short_Code, Short_Code_2, Description, Attributes, Goods_Services.
+CRITICAL SHORT CODE RULE (Alphabetic POS Format):
+- Short_Code must be Alphabetic: take the first letter of each of the first 3 major words (e.g. "Hyderabadi Chicken Dum Biryani" -> "HCD", "Chicken Seekh Kebab" -> "CSK", "Paneer Butter Masala" -> "PBM", "Dal Makhani" -> "DM").
+- For parent dishes: Base alphabetic code (e.g. "HCD").
+- For child variations: Base code + sequential digit without hyphen (e.g. 1st variation -> "HCD1", 2nd variation -> "HCD2", 3rd variation -> "HCD3").
+- If another dish gets same acronym, append sequential digit (e.g. "CSK1", "CSK2").
 CRITICAL: For items with variations (e.g. Half/Full or slash prices like 140/260), first create a PARENT row with Price="0" and Variation_Name="", followed by CHILD rows for each variation with their respective prices.
 For single items without variations, create a single row with actual Price and Variation_Name="".
 
@@ -394,13 +400,14 @@ ${getClientLanguageInstruction(outputLanguage)}`;
     });
 
     const normalizedItems = normalizeRowsDietary(items);
+    const finalizedItems = assignStandardShortCodes(normalizedItems, true);
 
     return {
       success: true,
       restaurantName: parsed.restaurantName || '',
       currency: parsed.currency || 'INR',
       outputLanguage,
-      items: normalizedItems,
+      items: finalizedItems,
     };
   } catch (clientErr: any) {
     throw new Error(clientErr?.message || 'Client-side Gemini extraction failed. Please check your API key.');

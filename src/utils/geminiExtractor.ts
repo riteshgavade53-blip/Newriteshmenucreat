@@ -2,6 +2,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
 import { MenuItemRow, ExtractionResponse, MenuOutputLanguage } from '../types';
+import { normalizeDietary, normalizeRowsDietary } from './dietaryUtils';
 
 export const USER_GEMINI_KEY_STORAGE = 'menu_extractor_gemini_api_key';
 
@@ -121,35 +122,38 @@ export function detectFileType(file: File): SupportedFileType {
 }
 
 function getClientLanguageInstruction(language: MenuOutputLanguage = 'english'): string {
+  const dietaryRule = `
+- Attributes: MANDATORY DIETARY TAG. Must strictly be one of three values:
+  * "Veg" for all vegetarian dishes (paneer, dal, sabzi, vegetables, breads, rice, desserts, beverages).
+  * "Non-Veg" for all non-vegetarian dishes (chicken, mutton, fish, prawns, seafood, meat, pork, beef).
+  * "Egg" for all egg-containing dishes (egg curry, omelette, boiled egg, egg bhurji, egg fried rice, egg biryani, etc.).
+  NEVER leave Attributes empty. ALWAYS output the exact tag "Veg", "Non-Veg", or "Egg" so it imports properly into Excel and POS.`;
+
   switch (language) {
     case 'hindi':
       return `LANGUAGE REQUIREMENT - HINDI (हिंदी - देवनागरी लिपि):
 - Output all item Name, Item_Online_DisplayName, Category, Category_Online_DisplayName, Variation_Name (e.g. "हाफ", "फुल", "रेगुलर", "1 पीस"), and Description in natural Hindi in Devanagari script.
-- Attributes: "वेज" or "शाकाहारी", "नॉन-वेज" or "मांसाहारी", "एग" or "अंडा".
-- Price must remain numeric.`;
+- Price must remain numeric.${dietaryRule}`;
 
     case 'marathi':
       return `LANGUAGE REQUIREMENT - MARATHI (मराठी - देवनागरी लिपी):
 - Output all item Name, Item_Online_DisplayName, Category, Category_Online_DisplayName, Variation_Name (e.g. "अर्धा / हाफ", "पूर्ण / फुल", "लहान", "मोठा", "1 नग"), and Description in natural Marathi in Devanagari script.
-- Attributes: "शाकाहारी", "मांसाहारी", "अंडा", "पेय".
-- Price must remain numeric.`;
+- Price must remain numeric.${dietaryRule}`;
 
     case 'gujarati':
       return `LANGUAGE REQUIREMENT - GUJARATI (ગુજરાતી - ગુજરાતી લિપિ):
 - Output all item Name, Item_Online_DisplayName, Category, Category_Online_DisplayName, Variation_Name (e.g. "હાફ", "ફુલ", "નાનું", "મોટું", "1 નંગ"), and Description in natural Gujarati script.
-- Attributes: "શાકાહારી", "માંસાહારી", "ઈંડા", "પીણું".
-- Price must remain numeric.`;
+- Price must remain numeric.${dietaryRule}`;
 
     case 'hinglish':
       return `LANGUAGE REQUIREMENT - HINGLISH (हिंग्लिश / Romanized Hindi):
 - Output item Names, Categories, Variations, and Descriptions in Hinglish (Hindi culinary words in English/Latin letters, e.g. "Paneer Butter Masala", "Dal Makhani Tadka", "Shuruaat / Starters", "Khaas Sabziyan", "Half / Adha", "Full / Poora").
-- Attributes: "Veg / Shakahari", "Non-Veg / Mansahari", "Egg / Anda".
-- Price must remain numeric.`;
+- Price must remain numeric.${dietaryRule}`;
 
     case 'english':
     default:
       return `LANGUAGE REQUIREMENT - ENGLISH (Standard):
-- Output all item Names, Categories, Variation names, and Descriptions in standard English.`;
+- Output all item Names, Categories, Variation names, and Descriptions in standard English.${dietaryRule}`;
   }
 }
 
@@ -248,6 +252,9 @@ export async function extractMenuData(params: {
     if (res.ok) {
       const data = await res.json();
       if (data.success) {
+        if (data.items && Array.isArray(data.items)) {
+          data.items = normalizeRowsDietary(data.items);
+        }
         return data;
       }
       throw new Error(data.error || 'Server extraction failed');
@@ -386,12 +393,14 @@ ${getClientLanguageInstruction(outputLanguage)}`;
       };
     });
 
+    const normalizedItems = normalizeRowsDietary(items);
+
     return {
       success: true,
       restaurantName: parsed.restaurantName || '',
       currency: parsed.currency || 'INR',
       outputLanguage,
-      items,
+      items: normalizedItems,
     };
   } catch (clientErr: any) {
     throw new Error(clientErr?.message || 'Client-side Gemini extraction failed. Please check your API key.');
@@ -518,7 +527,16 @@ ${JSON.stringify(
         Category: tr.Category || orig.Category,
         Category_Online_DisplayName: tr.Category_Online_DisplayName || tr.Category || orig.Category_Online_DisplayName,
         Description: tr.Description !== undefined ? tr.Description : orig.Description,
-        Attributes: tr.Attributes || orig.Attributes,
+        Attributes:
+          orig.Attributes === 'Veg' || orig.Attributes === 'Non-Veg' || orig.Attributes === 'Egg'
+            ? orig.Attributes
+            : normalizeDietary(
+                orig.Attributes,
+                orig.Name,
+                orig.Category,
+                orig.Description,
+                orig.Variation_Name
+              ),
       };
     });
   } catch (clientErr: any) {

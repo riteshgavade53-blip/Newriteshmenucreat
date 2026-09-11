@@ -6,6 +6,7 @@ import * as XLSX from 'xlsx';
 import mammoth from 'mammoth';
 import { GoogleGenAI, Type } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
+import { normalizeDietary, normalizeRowsDietary } from './src/utils/dietaryUtils';
 
 dotenv.config();
 
@@ -154,7 +155,11 @@ CRITICAL RULES FOR 11-COLUMN POS MENU FORMAT:
    - Short_Code: Short SKU abbreviation (e.g. "PBM", "PBM-H", "DM"). Generate a clean logical code if not in menu.
    - Short_Code_2: Secondary code (usually empty "").
    - Description: Dish description or ingredients if mentioned in menu.
-   - Attributes: Dietary tag: "Veg", "Non-Veg", "Egg", "Vegan", or "Beverage".
+   - Attributes: MANDATORY DIETARY TAG. Strictly one of three values:
+     * "Veg" for all vegetarian dishes (paneer, dal, sabzi, vegetables, breads, rice, desserts, beverages).
+     * "Non-Veg" for all non-vegetarian dishes (chicken, mutton, fish, prawns, seafood, meat, pork, beef).
+     * "Egg" for all egg-containing dishes (egg curry, omelette, boiled egg, egg bhurji, egg fried rice, egg biryani, etc.).
+     NEVER leave Attributes empty. Regardless of menu language, ALWAYS output Attributes strictly as "Veg", "Non-Veg", or "Egg" so it imports properly into Excel and POS.
    - Goods_Services: Always "Goods" for food & drinks.
 
 2. VARIATIONS & PARENT-CHILD RULE (CRITICAL FOR POS):
@@ -194,7 +199,7 @@ function getExtractionSystemInstruction(language: string = 'english'): string {
    - Output all dish names (Name, Item_Online_DisplayName), categories (Category, Category_Online_DisplayName), variation labels (Variation_Name e.g. "हाफ", "फुल", "रेगुलर", "लार्ज", "1 पीस"), and descriptions (Description) in natural, authentic Hindi in Devanagari script (देवनागरी).
    - Culinary dish names must be accurate in Devanagari (e.g. "पनीर बटर मसाला", "दाल मखनी", "कढ़ाई पनीर", "मसाला डोसा", "तंदूरी रोटी", "गुलाब जामुन").
    - Categories in Hindi (e.g. "स्टार्टर्स", "मुख्य भोजन", "रोटी व नान", "चावल व बिरयानी", "पेय पदार्थ", "मिठाई").
-   - Attributes: Dietary tag: "वेज" (or "शाकाहारी"), "नॉन-वेज" (or "मांसाहारी"), "एग" (or "अंडा").
+   - Attributes: ALWAYS "Veg", "Non-Veg", or "Egg" (keep in English for POS & Excel standard compatibility).
    - Price must remain strictly numeric (e.g. "180" or "0"). Goods_Services is always "Goods".`;
       break;
 
@@ -203,7 +208,7 @@ function getExtractionSystemInstruction(language: string = 'english'): string {
    - Output all dish names (Name, Item_Online_DisplayName), categories (Category, Category_Online_DisplayName), variation labels (Variation_Name e.g. "अर्धा / हाफ", "पूर्ण / फुल", "लहान", "मोठा", "1 नग"), and descriptions (Description) in natural, fluent Marathi in Devanagari script.
    - Food names authentic in Marathi (e.g. "पनीर बटर मसाला", "मटण सुक्का", "मिसळ पाव", "वरण भात", "सोलकढी", "कोथिंबीर वडी").
    - Categories in Marathi (e.g. "सुरुवात / स्टार्टर्स", "मुख्य जेवण", "रोटी आणि भाकरी", "भात व पुलाव", "पेये / सरबत", "मिष्टान्न / गोडधोड").
-   - Attributes: "शाकाहारी", "मांसाहारी", "अंडा", "पेय".
+   - Attributes: ALWAYS "Veg", "Non-Veg", or "Egg" (keep in English for POS & Excel standard compatibility).
    - Price must remain strictly numeric (e.g. "180" or "0"). Goods_Services is always "Goods".`;
       break;
 
@@ -212,7 +217,7 @@ function getExtractionSystemInstruction(language: string = 'english'): string {
    - Output all dish names (Name, Item_Online_DisplayName), categories (Category, Category_Online_DisplayName), variation labels (Variation_Name e.g. "હાફ", "ફુલ", "નાનું", "મોટું", "1 નંગ"), and descriptions (Description) in natural Gujarati script.
    - Food names authentic in Gujarati (e.g. "પનીર બટર મસાલા", "દાળ ફ્રાય", "ખમણ ઢોકળા", "સેવ ટામેટા શાક", "રોટલી / ભાખરી", "ગુલાબ જાંબુ").
    - Categories in Gujarati (e.g. "સ્ટાર્ટર્સ / નાસ્તો", "મુખ્ય વાનગી / શાક", "રોટલી અને પરોઠા", "દાળ-ભાત", "પીણાં", "મિઠાઈ").
-   - Attributes: "શાકાહારી", "માંસાહારી", "ઈંડા", "પીણું".
+   - Attributes: ALWAYS "Veg", "Non-Veg", or "Egg" (keep in English for POS & Excel standard compatibility).
    - Price must remain strictly numeric (e.g. "180" or "0"). Goods_Services is always "Goods".`;
       break;
 
@@ -222,14 +227,15 @@ function getExtractionSystemInstruction(language: string = 'english'): string {
    - Dishes like: "Paneer Butter Masala", "Dal Makhani Tadke Wali", "Tandoori Murgh Tikka", "Kadhai Paneer Lazeez", "Garam Gulab Jamun".
    - Categories in Hinglish (e.g. "Shuruaat / Starters", "Khaas Sabziyan / Main Course", "Roti aur Paratha", "Chawal aur Biryani", "Thanda Peena / Drinks", "Meetha / Desserts").
    - Variations in Hinglish (e.g. "Half / Adha", "Full / Poora", "Small / Chhota", "Large / Bada", "1 Piece").
-   - Attributes: "Veg / Shakahari", "Non-Veg / Mansahari", "Egg / Anda", "Drink".
+   - Attributes: ALWAYS "Veg", "Non-Veg", or "Egg" (keep in English for POS & Excel standard compatibility).
    - Price must remain strictly numeric (e.g. "180" or "0"). Goods_Services is always "Goods".`;
       break;
 
     case 'english':
     default:
       languageRule = `5. LANGUAGE REQUIREMENT - ENGLISH (Standard):
-   - Output all item Names, Categories, Variation labels, and Descriptions in standard English (e.g. "Paneer Butter Masala", "Starters", "Main Course", "Half", "Full", "Veg", "Non-Veg").`;
+   - Output all item Names, Categories, Variation labels, and Descriptions in standard English (e.g. "Paneer Butter Masala", "Starters", "Main Course", "Half", "Full").
+   - Attributes: ALWAYS strictly "Veg", "Non-Veg", or "Egg".`;
       break;
   }
 
@@ -462,12 +468,14 @@ app.post('/api/extract-menu', async (req, res) => {
       };
     });
 
+    const normalizedItems = normalizeRowsDietary(items);
+
     return res.json({
       success: true,
       restaurantName: parsedData.restaurantName || '',
       currency: parsedData.currency || 'INR',
       outputLanguage: targetLang,
-      items,
+      items: normalizedItems,
     });
   } catch (err: any) {
     console.error('Extraction error:', err);
@@ -588,7 +596,16 @@ STRICT MAPPING INSTRUCTIONS:
         Category: translated.Category || origRow.Category,
         Category_Online_DisplayName: translated.Category_Online_DisplayName || translated.Category || origRow.Category_Online_DisplayName,
         Description: translated.Description !== undefined ? translated.Description : origRow.Description,
-        Attributes: translated.Attributes || origRow.Attributes,
+        Attributes:
+          origRow.Attributes === 'Veg' || origRow.Attributes === 'Non-Veg' || origRow.Attributes === 'Egg'
+            ? origRow.Attributes
+            : normalizeDietary(
+                origRow.Attributes,
+                origRow.Name,
+                origRow.Category,
+                origRow.Description,
+                origRow.Variation_Name
+              ),
       };
     });
 

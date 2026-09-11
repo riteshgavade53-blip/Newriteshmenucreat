@@ -30,6 +30,8 @@ interface UploadZoneProps {
   error: string | null;
   selectedLanguage: MenuOutputLanguage;
   onSelectLanguage: (language: MenuOutputLanguage) => void;
+  hasOutput?: boolean;
+  outputCount?: number;
 }
 
 export const UploadZone: React.FC<UploadZoneProps> = ({
@@ -40,6 +42,8 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
   error,
   selectedLanguage,
   onSelectLanguage,
+  hasOutput = false,
+  outputCount = 0,
 }) => {
   const [activeTab, setActiveTab] = useState<'upload' | 'text'>('upload');
   const [pastedText, setPastedText] = useState('');
@@ -125,7 +129,11 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
   const totalSizeKB = (selectedFiles.reduce((acc, f) => acc + f.size, 0) / 1024).toFixed(1);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/90 shadow-sm overflow-hidden">
+    <div className={`bg-white rounded-2xl transition-all duration-500 overflow-hidden ${
+      hasOutput
+        ? 'border-2 border-emerald-300 shadow-md shadow-emerald-500/5'
+        : 'border border-slate-200/90 shadow-sm'
+    }`}>
       {/* Multilingual Output Language Selector Bar */}
       <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-emerald-950 text-white p-4 sm:px-6 border-b border-slate-800">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">

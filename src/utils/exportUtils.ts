@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx';
 import Papa from 'papaparse';
 import { MenuItemRow } from '../types';
+import { normalizeDietary, normalizeRowsDietary } from './dietaryUtils';
 
 export const POS_COLUMNS = [
   'Name',
@@ -17,19 +18,29 @@ export const POS_COLUMNS = [
 ] as const;
 
 export function sanitizeRowsForExport(rows: MenuItemRow[]): Record<string, string>[] {
-  return rows.map((row) => ({
-    Name: row.Name || '',
-    Item_Online_DisplayName: row.Item_Online_DisplayName || row.Name || '',
-    Variation_Name: row.Variation_Name || '',
-    Price: String(row.Price ?? ''),
-    Category: row.Category || 'General',
-    Category_Online_DisplayName: row.Category_Online_DisplayName || row.Category || 'General',
-    Short_Code: row.Short_Code || '',
-    Short_Code_2: row.Short_Code_2 || '',
-    Description: row.Description || '',
-    Attributes: row.Attributes || '',
-    Goods_Services: row.Goods_Services || 'Goods',
-  }));
+  return rows.map((row) => {
+    const rawAttr = (row.Attributes || '').trim();
+    let finalTag: string;
+    if (rawAttr === 'Veg' || rawAttr === 'Non-Veg' || rawAttr === 'Egg') {
+      finalTag = rawAttr;
+    } else {
+      finalTag = normalizeDietary(rawAttr, row.Name, row.Category, row.Description, row.Variation_Name);
+    }
+
+    return {
+      Name: row.Name || '',
+      Item_Online_DisplayName: row.Item_Online_DisplayName || row.Name || '',
+      Variation_Name: row.Variation_Name || '',
+      Price: String(row.Price ?? ''),
+      Category: row.Category || 'General',
+      Category_Online_DisplayName: row.Category_Online_DisplayName || row.Category || 'General',
+      Short_Code: row.Short_Code || '',
+      Short_Code_2: row.Short_Code_2 || '',
+      Description: row.Description || '',
+      Attributes: finalTag,
+      Goods_Services: row.Goods_Services || 'Goods',
+    };
+  });
 }
 
 export function exportToExcel(rows: MenuItemRow[], filename = 'POS_Menu_Extraction') {

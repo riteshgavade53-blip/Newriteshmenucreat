@@ -15,9 +15,13 @@ import {
   ChevronRight,
   Languages,
   Loader2,
+  Leaf,
+  Drumstick,
+  Egg as EggIcon,
 } from 'lucide-react';
 import { MenuItemRow, DietaryType, MenuOutputLanguage, SUPPORTED_LANGUAGES } from '../types';
 import { exportToExcel, exportToCsv, copyToClipboardTsv, POS_COLUMNS } from '../utils/exportUtils';
+import { normalizeDietary, getDietaryCounts } from '../utils/dietaryUtils';
 
 interface MenuTableProps {
   rows: MenuItemRow[];
@@ -56,6 +60,9 @@ export const MenuTable: React.FC<MenuTableProps> = ({
     return ['All', ...list.sort()];
   }, [rows]);
 
+  // Dietary counts for quick badges
+  const dietaryCounts = useMemo(() => getDietaryCounts(rows), [rows]);
+
   // Filtered rows
   const filteredRows = useMemo(() => {
     return rows.filter((row) => {
@@ -76,16 +83,20 @@ export const MenuTable: React.FC<MenuTableProps> = ({
         return false;
       }
 
-      // Dietary filter
+      // Dietary filter (strictly normalized into 'Veg' | 'Non-Veg' | 'Egg')
       if (dietaryFilter !== 'All') {
-        const attr = (row.Attributes || '').toLowerCase();
-        if (dietaryFilter === 'Veg') {
-          if (!attr.includes('veg') || attr.includes('non')) return false;
-        } else if (dietaryFilter === 'Non-Veg') {
-          if (!attr.includes('non-veg') && !attr.includes('chicken') && !attr.includes('mutton') && !attr.includes('fish'))
-            return false;
-        } else if (dietaryFilter === 'Egg') {
-          if (!attr.includes('egg')) return false;
+        const tag =
+          row.Attributes === 'Veg' || row.Attributes === 'Non-Veg' || row.Attributes === 'Egg'
+            ? row.Attributes
+            : normalizeDietary(
+                row.Attributes,
+                row.Name,
+                row.Category,
+                row.Description,
+                row.Variation_Name
+              );
+        if (tag !== dietaryFilter) {
+          return false;
         }
       }
 
@@ -224,21 +235,66 @@ export const MenuTable: React.FC<MenuTableProps> = ({
             </select>
           </div>
 
-          {/* Dietary Buttons */}
+          {/* Dietary Buttons (Veg, Non-Veg, Egg) */}
           <div className="flex items-center bg-white p-0.5 rounded-lg border border-slate-200 text-xs">
-            {(['All', 'Veg', 'Non-Veg'] as DietaryType[]).map((type) => (
-              <button
-                key={type}
-                onClick={() => setDietaryFilter(type)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
-                  dietaryFilter === type
-                    ? 'bg-slate-900 text-white shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                {type}
-              </button>
-            ))}
+            <button
+              onClick={() => setDietaryFilter('All')}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-1 ${
+                dietaryFilter === 'All'
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              <span>All</span>
+              <span className={`text-[10px] px-1 rounded ${dietaryFilter === 'All' ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-500'}`}>
+                {dietaryCounts.all}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setDietaryFilter('Veg')}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-1 ${
+                dietaryFilter === 'Veg'
+                  ? 'bg-emerald-600 text-white shadow-2xs'
+                  : 'text-emerald-700 hover:bg-emerald-50'
+              }`}
+            >
+              <Leaf className="w-3 h-3 text-emerald-500 shrink-0" />
+              <span>Veg</span>
+              <span className={`text-[10px] px-1 rounded ${dietaryFilter === 'Veg' ? 'bg-emerald-700 text-white' : 'bg-emerald-100/70 text-emerald-800 font-bold'}`}>
+                {dietaryCounts.veg}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setDietaryFilter('Non-Veg')}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-1 ${
+                dietaryFilter === 'Non-Veg'
+                  ? 'bg-rose-600 text-white shadow-2xs'
+                  : 'text-rose-700 hover:bg-rose-50'
+              }`}
+            >
+              <Drumstick className="w-3 h-3 text-rose-500 shrink-0" />
+              <span>Non-Veg</span>
+              <span className={`text-[10px] px-1 rounded ${dietaryFilter === 'Non-Veg' ? 'bg-rose-700 text-white' : 'bg-rose-100/70 text-rose-800 font-bold'}`}>
+                {dietaryCounts.nonVeg}
+              </span>
+            </button>
+
+            <button
+              onClick={() => setDietaryFilter('Egg')}
+              className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors flex items-center gap-1 ${
+                dietaryFilter === 'Egg'
+                  ? 'bg-amber-600 text-white shadow-2xs'
+                  : 'text-amber-800 hover:bg-amber-50'
+              }`}
+            >
+              <EggIcon className="w-3 h-3 text-amber-500 shrink-0" />
+              <span>Egg</span>
+              <span className={`text-[10px] px-1 rounded ${dietaryFilter === 'Egg' ? 'bg-amber-700 text-white' : 'bg-amber-100/70 text-amber-800 font-bold'}`}>
+                {dietaryCounts.egg}
+              </span>
+            </button>
           </div>
 
           <span className="text-xs text-slate-500 font-mono hidden xl:inline">
@@ -345,8 +401,13 @@ export const MenuTable: React.FC<MenuTableProps> = ({
             {filteredRows.map((row, idx) => {
               const isParent = row.isParent || (String(row.Price) === '0' && (!row.Variation_Name || row.Variation_Name === ''));
               const isVariation = Boolean(row.Variation_Name && row.Variation_Name.trim() !== '');
-              const isVeg = (row.Attributes || '').toLowerCase().includes('veg') && !(row.Attributes || '').toLowerCase().includes('non');
-              const isNonVeg = (row.Attributes || '').toLowerCase().includes('non-veg') || (row.Attributes || '').toLowerCase().includes('chicken') || (row.Attributes || '').toLowerCase().includes('mutton') || (row.Attributes || '').toLowerCase().includes('fish');
+              const dietaryTag =
+                row.Attributes === 'Veg' || row.Attributes === 'Non-Veg' || row.Attributes === 'Egg'
+                  ? row.Attributes
+                  : normalizeDietary(row.Attributes, row.Name, row.Category, row.Description, row.Variation_Name);
+              const isVeg = dietaryTag === 'Veg';
+              const isNonVeg = dietaryTag === 'Non-Veg';
+              const isEgg = dietaryTag === 'Egg';
 
               return (
                 <tr
@@ -478,24 +539,32 @@ export const MenuTable: React.FC<MenuTableProps> = ({
                     />
                   </td>
 
-                  {/* 10. Attributes */}
+                  {/* 10. Attributes (Veg / Non-Veg / Egg) */}
                   <td className="p-2">
-                    <div className="flex items-center gap-1.5">
-                      <span
-                        className={`w-2 h-2 rounded-full shrink-0 ${
+                    <div className="flex items-center gap-1">
+                      <div
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border transition-colors ${
                           isVeg
-                            ? 'bg-emerald-500'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
                             : isNonVeg
-                            ? 'bg-rose-500'
-                            : 'bg-amber-500'
+                            ? 'bg-rose-50 text-rose-700 border-rose-300'
+                            : 'bg-amber-50 text-amber-700 border-amber-300'
                         }`}
-                      />
-                      <input
-                        type="text"
-                        value={row.Attributes}
-                        onChange={(e) => handleCellChange(row.id, 'Attributes', e.target.value)}
-                        className="w-full bg-transparent focus:bg-white focus:ring-1 focus:ring-emerald-500 rounded px-1.5 py-0.5 text-xs text-slate-700 font-medium"
-                      />
+                      >
+                        {isVeg && <Leaf className="w-3 h-3 text-emerald-600 shrink-0" />}
+                        {isNonVeg && <Drumstick className="w-3 h-3 text-rose-600 shrink-0" />}
+                        {isEgg && <EggIcon className="w-3 h-3 text-amber-600 shrink-0" />}
+                        <select
+                          value={dietaryTag}
+                          onChange={(e) => handleCellChange(row.id, 'Attributes', e.target.value)}
+                          className="bg-transparent font-bold text-[11px] cursor-pointer focus:outline-none pr-1"
+                          title="Click to toggle Veg / Non-Veg / Egg"
+                        >
+                          <option value="Veg" className="text-emerald-700 font-semibold bg-white">Veg</option>
+                          <option value="Non-Veg" className="text-rose-700 font-semibold bg-white">Non-Veg</option>
+                          <option value="Egg" className="text-amber-700 font-semibold bg-white">Egg</option>
+                        </select>
+                      </div>
                     </div>
                   </td>
 

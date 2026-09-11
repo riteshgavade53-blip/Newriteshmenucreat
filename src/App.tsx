@@ -37,6 +37,18 @@ export default function App() {
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState<boolean>(false);
 
   const tableSectionRef = useRef<HTMLDivElement>(null);
+  const hasOutput = rows.length > 0;
+
+  // Turn body background light green when output arrives
+  useEffect(() => {
+    if (hasOutput) {
+      document.body.classList.remove('bg-slate-50');
+      document.body.classList.add('bg-[#edfcf2]');
+    } else {
+      document.body.classList.remove('bg-[#edfcf2]');
+      document.body.classList.add('bg-slate-50');
+    }
+  }, [hasOutput]);
 
   // Check health and visitor tracking on mount
   useEffect(() => {
@@ -193,9 +205,27 @@ export default function App() {
 
   // Row operations
   const handleUpdateRow = (id: string, updatedRow: Partial<MenuItemRow>) => {
-    setRows((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...updatedRow } : r))
-    );
+    setRows((prev) => {
+      const target = prev.find((r) => r.id === id);
+      if (!target) return prev;
+
+      // If user is updating dietary Attributes on a parent dish, also cascade to its variations
+      if (updatedRow.Attributes && (target.isParent || (!target.Variation_Name && (target.Price === '0' || !target.Price)))) {
+        const parentName = target.Name.trim().toLowerCase();
+        return prev.map((r) => {
+          if (r.id === id) {
+            return { ...r, ...updatedRow };
+          }
+          // If this is a child variation of this parent (same Name and has Variation_Name)
+          if (parentName && r.Name.trim().toLowerCase() === parentName && r.Variation_Name) {
+            return { ...r, Attributes: updatedRow.Attributes! };
+          }
+          return r;
+        });
+      }
+
+      return prev.map((r) => (r.id === id ? { ...r, ...updatedRow } : r));
+    });
   };
 
   const handleDeleteRow = (id: string) => {
@@ -243,7 +273,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-900 pb-16">
+    <div className={`min-h-screen flex flex-col text-slate-900 pb-16 transition-colors duration-700 ease-in-out ${
+      hasOutput ? 'bg-[#edfcf2]' : 'bg-slate-50'
+    }`}>
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-lg border border-slate-700 text-xs font-semibold flex items-center gap-2.5 animate-bounce">
@@ -258,6 +290,8 @@ export default function App() {
         hasUserKey={hasUserKey}
         onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
         siteStats={siteStats}
+        hasOutput={hasOutput}
+        itemCount={rows.length}
       />
 
       {/* Main Content */}
@@ -278,7 +312,49 @@ export default function App() {
           error={error}
           selectedLanguage={outputLanguage}
           onSelectLanguage={setOutputLanguage}
+          hasOutput={hasOutput}
+          outputCount={rows.length}
         />
+
+        {/* Output Received Celebration Banner */}
+        {hasOutput && (
+          <div
+            id="output-ready-banner"
+            className="bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 border-2 border-emerald-400 text-white p-4 sm:p-5 rounded-2xl shadow-md flex flex-col sm:flex-row items-center justify-between gap-4 transition-all animate-in fade-in slide-in-from-top duration-500"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-white text-emerald-700 flex items-center justify-center font-black text-xl shrink-0 shadow-sm">
+                ✓
+              </div>
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h2 className="font-extrabold text-base sm:text-lg tracking-tight">
+                    Output Aa Gaya Hai! (Menu Safaltapoorvak Ready Hai)
+                  </h2>
+                  <span className="bg-emerald-900/90 text-emerald-200 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-emerald-500/50">
+                    {rows.length} Items
+                  </span>
+                  <span className="bg-white/20 text-white text-[11px] font-bold px-2 py-0.5 rounded-md border border-white/30 uppercase">
+                    {outputLanguage}
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-100 mt-1">
+                  Pura page <strong>Light Green</strong> ho chuka hai taaki aapko turant pata chal sake ki process complete ho gaya hai. Niche table me aapka 11-column POS menu taiyar hai — aap check karke <strong>Export Excel (.xlsx)</strong> download kar sakte hain!
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => tableSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer flex items-center gap-1.5"
+              >
+                <span>Table Par Jayein ↓</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Stats KPI Cards */}
         {rows.length > 0 && (

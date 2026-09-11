@@ -1,6 +1,7 @@
 import React from 'react';
 import { MenuItemRow } from '../types';
-import { Layers, Utensils, Sliders, FolderTree, Leaf, Drumstick } from 'lucide-react';
+import { Layers, Utensils, Sliders, FolderTree, Leaf, Drumstick, Egg as EggIcon } from 'lucide-react';
+import { getDietaryCounts } from '../utils/dietaryUtils';
 
 interface StatsCardsProps {
   rows: MenuItemRow[];
@@ -19,9 +20,7 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
   const categories = new Set(rows.map((r) => r.Category).filter(Boolean));
   const uniqueItemNames = new Set(rows.map((r) => r.Name).filter(Boolean));
   const variationRows = rows.filter((r) => r.Variation_Name && r.Variation_Name.trim() !== '');
-  const parentRows = rows.filter((r) => r.Price === '0' || r.Price === 0 || r.isParent);
-  const vegRows = rows.filter((r) => (r.Attributes || '').toLowerCase().includes('veg') && !(r.Attributes || '').toLowerCase().includes('non'));
-  const nonVegRows = rows.filter((r) => (r.Attributes || '').toLowerCase().includes('non-veg') || (r.Attributes || '').toLowerCase().includes('chicken') || (r.Attributes || '').toLowerCase().includes('mutton') || (r.Attributes || '').toLowerCase().includes('fish'));
+  const dietaryCounts = getDietaryCounts(rows);
 
   return (
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -85,22 +84,36 @@ export const StatsCards: React.FC<StatsCardsProps> = ({
         </div>
       </div>
 
-      {/* Veg / Non-Veg Split */}
+      {/* Veg / Non-Veg / Egg Split */}
       <div className="bg-white p-3.5 rounded-xl border border-slate-200/80 shadow-xs flex items-center gap-3 col-span-2 sm:col-span-1">
-        <div className="w-10 h-10 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center shrink-0">
-          <Drumstick className="w-5 h-5" />
+        <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <Leaf className="w-5 h-5" />
         </div>
         <div className="min-w-0">
           <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block truncate">
-            Dietary Mix
+            Veg / Non-Veg / Egg
           </span>
-          <div className="flex items-center gap-2 mt-0.5">
-            <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded">
-              <Leaf className="w-3 h-3 text-emerald-600" /> {vegRows.length}
+          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+            <span
+              className="inline-flex items-center gap-0.5 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.2 rounded"
+              title={`${dietaryCounts.veg} Vegetarian Items`}
+            >
+              <Leaf className="w-3 h-3 text-emerald-600" /> {dietaryCounts.veg}
             </span>
-            <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">
-              <Drumstick className="w-3 h-3 text-rose-600" /> {nonVegRows.length}
+            <span
+              className="inline-flex items-center gap-0.5 text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200/80 px-1.5 py-0.2 rounded"
+              title={`${dietaryCounts.nonVeg} Non-Vegetarian Items`}
+            >
+              <Drumstick className="w-3 h-3 text-rose-600" /> {dietaryCounts.nonVeg}
             </span>
+            {dietaryCounts.egg > 0 && (
+              <span
+                className="inline-flex items-center gap-0.5 text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-1.5 py-0.2 rounded"
+                title={`${dietaryCounts.egg} Egg Items`}
+              >
+                <EggIcon className="w-3 h-3 text-amber-600" /> {dietaryCounts.egg}
+              </span>
+            )}
           </div>
         </div>
       </div>

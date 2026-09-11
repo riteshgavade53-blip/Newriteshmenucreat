@@ -14,6 +14,8 @@ interface HeaderProps {
   hasUserKey: boolean;
   onOpenApiKeyModal: () => void;
   siteStats: SiteStats | null;
+  hasOutput?: boolean;
+  itemCount?: number;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -21,11 +23,17 @@ export const Header: React.FC<HeaderProps> = ({
   hasUserKey,
   onOpenApiKeyModal,
   siteStats,
+  hasOutput = false,
+  itemCount = 0,
 }) => {
   const isKeyReady = hasServerKey || hasUserKey;
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
+    <header className={`sticky top-0 z-30 shadow-xs transition-colors duration-500 ${
+      hasOutput
+        ? 'bg-white/95 backdrop-blur-md border-b-2 border-emerald-400'
+        : 'bg-white border-b border-slate-200'
+    }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand & Title */}
@@ -42,6 +50,14 @@ export const Header: React.FC<HeaderProps> = ({
                   <FileSpreadsheet className="w-3 h-3 text-emerald-600" />
                   11-Column POS Format
                 </span>
+
+                {/* Output Ready Indicator Badge in Header */}
+                {hasOutput && (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 px-2.5 py-0.5 rounded-full animate-pulse shadow-2xs">
+                    <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
+                    <span>Output Ready ({itemCount})</span>
+                  </span>
+                )}
               </div>
               <p className="text-xs text-slate-500 hidden sm:block">
                 Extract items, variations & prices into POS Excel format via Gemini AI

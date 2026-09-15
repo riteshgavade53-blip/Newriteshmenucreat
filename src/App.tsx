@@ -323,7 +323,11 @@ export default function App() {
       />
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
+      <main className={`flex-1 w-full ${
+        activeTopTab === 'pos-menu'
+          ? 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6'
+          : 'w-full px-2 sm:px-4 py-2 flex flex-col'
+      }`}>
         {activeTopTab === 'pdf-to-excel' ? (
           <PdfToExcelView onShowToast={showToast} />
         ) : activeTopTab === 'pdf-image-editor' ? (

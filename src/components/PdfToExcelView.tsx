@@ -303,14 +303,14 @@ export const PdfToExcelView: React.FC<PdfToExcelViewProps> = ({ onShowToast }) =
   };
 
   return (
-    <div className="flex flex-col min-h-[calc(100vh-140px)] bg-slate-950 text-slate-200 p-4 sm:p-6 rounded-2xl border border-slate-800 shadow-2xl relative overflow-hidden">
+    <div className="flex flex-col flex-1 w-full min-h-[calc(100vh-110px)] bg-slate-950 text-slate-200 p-2 sm:p-3 rounded-2xl border border-slate-800 shadow-2xl relative overflow-hidden">
       {/* Glow effects matching original repo */}
       <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none -translate-y-1/2"></div>
       <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none translate-y-1/2"></div>
 
-      <div className="w-full max-w-5xl mx-auto space-y-6 relative z-10">
+      <div className="w-full flex-1 flex flex-col space-y-2.5 relative z-10">
         {/* Top Controls Bar */}
-        <div className="flex items-center justify-between gap-4 flex-wrap pb-2 border-b border-slate-800/80">
+        <div className="flex items-center justify-between gap-3 flex-wrap pb-2 border-b border-slate-800/80">
           <div className="flex items-center gap-2">
             <div className="flex items-center p-1 bg-slate-900 rounded-xl border border-slate-800 gap-1 text-xs">
               <button
@@ -387,18 +387,18 @@ export const PdfToExcelView: React.FC<PdfToExcelViewProps> = ({ onShowToast }) =
           </div>
         </div>
 
-        {/* Live App Iframe Container (Default) */}
+        {/* Live App Iframe Container (Default) - Expanded to Full Black Area */}
         {viewMode === 'live-app' ? (
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[750px] relative">
+          <div className="w-full flex-1 min-h-[calc(100vh-170px)] h-[85vh] bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-2xl flex flex-col relative">
             {/* Top Bar for frame */}
-            <div className="bg-slate-950 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between gap-3 text-xs">
+            <div className="bg-slate-950 px-3 py-2 border-b border-slate-800 flex items-center justify-between gap-3 text-xs shrink-0">
               <div className="flex items-center gap-2">
                 <div className="flex items-center gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80"></div>
                   <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
                   <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
                 </div>
-                <div className="ml-3 px-3 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 font-mono text-[11px] flex items-center gap-1.5">
+                <div className="ml-2 px-2.5 py-0.5 bg-slate-900 border border-slate-800 rounded-md text-slate-400 font-mono text-[11px] flex items-center gap-1.5">
                   <Globe className="w-3 h-3 text-emerald-400" />
                   <span>https://newriteshpdttoexcel.vercel.app/</span>
                 </div>
@@ -410,7 +410,7 @@ export const PdfToExcelView: React.FC<PdfToExcelViewProps> = ({ onShowToast }) =
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-slate-400 hover:text-white flex items-center gap-1 text-[11px] font-semibold"
-                  title="Open full page in new tab if needed"
+                  title="Open full page in new tab"
                 >
                   <span>Full Screen</span>
                   <Maximize2 className="w-3 h-3" />
@@ -420,7 +420,7 @@ export const PdfToExcelView: React.FC<PdfToExcelViewProps> = ({ onShowToast }) =
 
             {/* Loading Overlay */}
             {isIframeLoading && (
-              <div className="absolute inset-x-0 top-11 bottom-0 z-20 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-xs">
+              <div className="absolute inset-x-0 top-9 bottom-0 z-20 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-xs">
                 <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-500 mb-3"></div>
                 <p className="text-xs text-slate-300 font-medium">Loading PDF to Excel App...</p>
               </div>
@@ -430,7 +430,7 @@ export const PdfToExcelView: React.FC<PdfToExcelViewProps> = ({ onShowToast }) =
               key={iframeKey}
               src={targetUrl}
               title="PDF to Excel Converter"
-              className="w-full h-full border-none bg-slate-950"
+              className="w-full h-full border-none bg-white flex-1"
               onLoad={() => setIsIframeLoading(false)}
               allow="clipboard-read; clipboard-write"
             />

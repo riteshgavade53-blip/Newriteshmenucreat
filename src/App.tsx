@@ -5,7 +5,8 @@ import { UploadZone } from './components/UploadZone';
 import { MenuTable } from './components/MenuTable';
 import { StatsCards } from './components/StatsCards';
 import { ApiKeyModal } from './components/ApiKeyModal';
-import { MenuItemRow, SiteStats, MenuOutputLanguage } from './types';
+import { MenuItemRow, SiteStats, MenuOutputLanguage, TopTabType } from './types';
+import { PdfToExcelView } from './components/PdfToExcelView';
 import {
   extractMenuData,
   translateMenuData,
@@ -34,22 +35,25 @@ export default function App() {
   const [siteStats, setSiteStats] = useState<SiteStats | null>(null);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Top navigation tabs: 'pos-menu' or 'pdf-to-excel'
+  const [activeTopTab, setActiveTopTab] = useState<TopTabType>('pos-menu');
+
   // Modals
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState<boolean>(false);
 
   const tableSectionRef = useRef<HTMLDivElement>(null);
   const hasOutput = rows.length > 0;
 
-  // Turn body background light green when output arrives
+  // Turn body background light green when output arrives in POS menu tab
   useEffect(() => {
-    if (hasOutput) {
+    if (activeTopTab === 'pos-menu' && hasOutput) {
       document.body.classList.remove('bg-slate-50');
       document.body.classList.add('bg-[#edfcf2]');
     } else {
       document.body.classList.remove('bg-[#edfcf2]');
       document.body.classList.add('bg-slate-50');
     }
-  }, [hasOutput]);
+  }, [hasOutput, activeTopTab]);
 
   // Check health and visitor tracking on mount
   useEffect(() => {
@@ -313,123 +317,131 @@ export default function App() {
         siteStats={siteStats}
         hasOutput={hasOutput}
         itemCount={rows.length}
+        activeTab={activeTopTab}
+        onSelectTab={setActiveTopTab}
       />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
-        {/* Step 1: Prominent Output Language Selection (Hindi, Gujarati, Marathi, English, Hinglish) */}
-        <LanguageSelector
-          selectedLanguage={outputLanguage}
-          onSelectLanguage={setOutputLanguage}
-          disabled={isLoading || isTranslating}
-        />
+        {activeTopTab === 'pdf-to-excel' ? (
+          <PdfToExcelView onShowToast={showToast} />
+        ) : (
+          <>
+            {/* Step 1: Prominent Output Language Selection (Hindi, Gujarati, Marathi, English, Hinglish) */}
+            <LanguageSelector
+              selectedLanguage={outputLanguage}
+              onSelectLanguage={setOutputLanguage}
+              disabled={isLoading || isTranslating}
+            />
 
-        {/* Step 2: Upload & Extraction Zone (PDF, Images, Word, Excel, Text) */}
-        <UploadZone
-          onExtractFiles={handleExtractFiles}
-          onExtractText={handleExtractText}
-          isLoading={isLoading}
-          loadingStep={loadingStep}
-          error={error}
-          selectedLanguage={outputLanguage}
-          onSelectLanguage={setOutputLanguage}
-          hasOutput={hasOutput}
-          outputCount={rows.length}
-        />
+            {/* Step 2: Upload & Extraction Zone (PDF, Images, Word, Excel, Text) */}
+            <UploadZone
+              onExtractFiles={handleExtractFiles}
+              onExtractText={handleExtractText}
+              isLoading={isLoading}
+              loadingStep={loadingStep}
+              error={error}
+              selectedLanguage={outputLanguage}
+              onSelectLanguage={setOutputLanguage}
+              hasOutput={hasOutput}
+              outputCount={rows.length}
+            />
 
-        {/* Output Received Celebration Banner */}
-        {hasOutput && (
-          <div
-            id="output-ready-banner"
-            className="bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 border-2 border-emerald-400 text-white p-4 sm:p-5 rounded-2xl shadow-md flex flex-col sm:flex-row items-center justify-between gap-4 transition-all animate-in fade-in slide-in-from-top duration-500"
-          >
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-xl bg-white text-emerald-700 flex items-center justify-center font-black text-xl shrink-0 shadow-sm">
-                ✓
-              </div>
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="font-extrabold text-base sm:text-lg tracking-tight">
-                    Output Aa Gaya Hai! (Menu Safaltapoorvak Ready Hai)
-                  </h2>
-                  <span className="bg-emerald-900/90 text-emerald-200 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-emerald-500/50">
-                    {rows.length} Items
-                  </span>
-                  <span className="bg-white/20 text-white text-[11px] font-bold px-2 py-0.5 rounded-md border border-white/30 uppercase">
-                    {outputLanguage}
-                  </span>
-                </div>
-                <p className="text-xs text-emerald-100 mt-1">
-                  Pura page <strong>Light Green</strong> ho chuka hai taaki aapko turant pata chal sake ki process complete ho gaya hai. Niche table me aapka 11-column POS menu taiyar hai — aap check karke <strong>Export Excel (.xlsx)</strong> download kar sakte hain!
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => tableSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                className="px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer flex items-center gap-1.5"
+            {/* Output Received Celebration Banner */}
+            {hasOutput && (
+              <div
+                id="output-ready-banner"
+                className="bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 border-2 border-emerald-400 text-white p-4 sm:p-5 rounded-2xl shadow-md flex flex-col sm:flex-row items-center justify-between gap-4 transition-all animate-in fade-in slide-in-from-top duration-500"
               >
-                <span>Table Par Jayein ↓</span>
-              </button>
+                <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-xl bg-white text-emerald-700 flex items-center justify-center font-black text-xl shrink-0 shadow-sm">
+                    ✓
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="font-extrabold text-base sm:text-lg tracking-tight">
+                        Output Aa Gaya Hai! (Menu Safaltapoorvak Ready Hai)
+                      </h2>
+                      <span className="bg-emerald-900/90 text-emerald-200 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border border-emerald-500/50">
+                        {rows.length} Items
+                      </span>
+                      <span className="bg-white/20 text-white text-[11px] font-bold px-2 py-0.5 rounded-md border border-white/30 uppercase">
+                        {outputLanguage}
+                      </span>
+                    </div>
+                    <p className="text-xs text-emerald-100 mt-1">
+                      Pura page <strong>Light Green</strong> ho chuka hai taaki aapko turant pata chal sake ki process complete ho gaya hai. Niche table me aapka 11-column POS menu taiyar hai — aap check karke <strong>Export Excel (.xlsx)</strong> download kar sakte hain!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => tableSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    className="px-4 py-2.5 bg-white hover:bg-emerald-50 text-emerald-900 font-bold text-xs rounded-xl shadow-xs transition-transform active:scale-95 cursor-pointer flex items-center gap-1.5"
+                  >
+                    <span>Table Par Jayein ↓</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Stats KPI Cards */}
+            {rows.length > 0 && (
+              <StatsCards
+                rows={rows}
+                restaurantName={restaurantName}
+                currency={currency}
+              />
+            )}
+
+            {/* Menu Data Table */}
+            <div ref={tableSectionRef}>
+              <MenuTable
+                rows={rows}
+                onUpdateRow={handleUpdateRow}
+                onDeleteRow={handleDeleteRow}
+                onDuplicateRow={handleDuplicateRow}
+                onAddRow={handleAddRow}
+                onClearRows={handleClearRows}
+                onRegenerateShortCodes={handleRegenerateShortCodes}
+                restaurantName={restaurantName}
+                currentLanguage={outputLanguage}
+                onTranslateLanguage={handleTranslateLanguage}
+                isTranslating={isTranslating}
+              />
             </div>
-          </div>
+
+            {/* Specification Reference Footer Card */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+              <div className="flex items-center gap-2 mb-3">
+                <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                <h3 className="font-bold text-sm text-slate-900">
+                  Standard POS 11-Column Format Compliance
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs text-slate-600">
+                <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                  <span className="font-bold text-slate-800 block">1. Variation Parent-Child</span>
+                  Parent dish price is always 0. Variations (Half/Full, Sizes) follow as child rows with their individual prices.
+                </div>
+                <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                  <span className="font-bold text-slate-800 block">2. Category Online Name</span>
+                  Both offline POS Category and Online Display Category are extracted to ensure Swiggy/Zomato sync.
+                </div>
+                <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                  <span className="font-bold text-slate-800 block">3. Dietary Attributes</span>
+                  Accurately tagged as Veg, Non-Veg, or Egg for POS order routing and kitchen display tickets.
+                </div>
+                <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
+                  <span className="font-bold text-slate-800 block">4. Excel (.xlsx) & CSV</span>
+                  Export generated directly with SheetJS in UTF-8 format ready for POS admin portal bulk upload.
+                </div>
+              </div>
+            </div>
+          </>
         )}
-
-        {/* Stats KPI Cards */}
-        {rows.length > 0 && (
-          <StatsCards
-            rows={rows}
-            restaurantName={restaurantName}
-            currency={currency}
-          />
-        )}
-
-        {/* Menu Data Table */}
-        <div ref={tableSectionRef}>
-          <MenuTable
-            rows={rows}
-            onUpdateRow={handleUpdateRow}
-            onDeleteRow={handleDeleteRow}
-            onDuplicateRow={handleDuplicateRow}
-            onAddRow={handleAddRow}
-            onClearRows={handleClearRows}
-            onRegenerateShortCodes={handleRegenerateShortCodes}
-            restaurantName={restaurantName}
-            currentLanguage={outputLanguage}
-            onTranslateLanguage={handleTranslateLanguage}
-            isTranslating={isTranslating}
-          />
-        </div>
-
-        {/* Specification Reference Footer Card */}
-        <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
-          <div className="flex items-center gap-2 mb-3">
-            <ShieldCheck className="w-5 h-5 text-emerald-600" />
-            <h3 className="font-bold text-sm text-slate-900">
-              Standard POS 11-Column Format Compliance
-            </h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs text-slate-600">
-            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-              <span className="font-bold text-slate-800 block">1. Variation Parent-Child</span>
-              Parent dish price is always 0. Variations (Half/Full, Sizes) follow as child rows with their individual prices.
-            </div>
-            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-              <span className="font-bold text-slate-800 block">2. Category Online Name</span>
-              Both offline POS Category and Online Display Category are extracted to ensure Swiggy/Zomato sync.
-            </div>
-            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-              <span className="font-bold text-slate-800 block">3. Dietary Attributes</span>
-              Accurately tagged as Veg, Non-Veg, or Egg for POS order routing and kitchen display tickets.
-            </div>
-            <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-              <span className="font-bold text-slate-800 block">4. Excel (.xlsx) & CSV</span>
-              Export generated directly with SheetJS in UTF-8 format ready for POS admin portal bulk upload.
-            </div>
-          </div>
-        </div>
       </main>
 
       {/* Modals */}

@@ -119,3 +119,18 @@ export interface SamplePreset {
   sampleText: string;
   defaultRows: MenuItemRow[];
 }
+
+export type TopTabType = 'pos-menu' | 'pdf-to-excel';
+
+export interface PdfTableSheet {
+  sheetName: string;
+  headers: string[];
+  rows: (string | number)[][];
+}
+
+export interface PdfToExcelResponse {
+  success: boolean;
+  documentTitle?: string;
+  sheets: PdfTableSheet[];
+  error?: string;
+}

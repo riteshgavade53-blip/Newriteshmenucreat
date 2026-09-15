@@ -507,6 +507,138 @@ app.post('/api/extract-menu', async (req, res) => {
   }
 });
 
+// PDF to Excel table extraction endpoint (supports DocExtractor 11-column and Universal mode)
+app.post('/api/pdf-to-excel', async (req, res) => {
+  try {
+    const { fileName, mimeType, fileBase64, userApiKey, mode = 'doc-extractor' } = req.body;
+
+    if (!fileBase64) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file data received.',
+      });
+    }
+
+    const apiKey = userApiKey || process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(400).json({
+        success: false,
+        error: 'Gemini API key is not configured. Please enter your API key in Settings.',
+      });
+    }
+
+    const ai = new GoogleGenAI({ apiKey });
+
+    const isDocExtractor = mode === 'doc-extractor';
+
+    const promptText = isDocExtractor
+      ? `Analyze this PDF or document ("${fileName || 'document.pdf'}") using the DocExtractor 11-column standard format.
+Extract into a single sheet named "DocExtractor_11Col".
+The 11 headers MUST BE EXACTLY:
+["Name", "Item_Online_DisplayName", "Variation_Name", "Price", "Category", "Category_Online_DisplayName", "Short_Code", "Short_Code_2", "Description", "Attributes", "Goods_Services"]
+
+Rules:
+1. When an item has multiple variations (e.g. Small/Medium/Large, Half/Full, 200ml/500ml, Colors):
+   - Create a PARENT row with Price="0", Variation_Name="", and Goods_Services="Services" or "Goods".
+   - Immediately follow with CHILD rows with the exact variation name in Variation_Name, its price in Price, and Size/Variant in Attributes.
+2. For standalone single items without variants:
+   - Variation_Name must be empty (""), and Price is the item price.
+3. Category & Category_Online_DisplayName: deduce appropriate section (e.g., Apparel, Food, Beverages, Services).
+4. Extract all items completely without omitting any rows.`
+      : `Analyze this PDF or document ("${fileName || 'document.pdf'}") and extract all tabular data into structured sheets.
+For each distinct table or section:
+1. Provide a clear sheetName (e.g. "Table_1", "Invoice_Data", "Summary").
+2. Extract all column headers as an array of strings in 'headers'.
+3. Extract all data rows as an array of string arrays in 'rows'.
+Maintain column order, numbers, dates, prices, quantities, and text formatting precisely. Do not truncate rows.`;
+
+    const systemInstruction = isDocExtractor
+      ? 'You are DocExtractor, an expert document parser that converts documents, catalogues, rate lists, and menus into the standardized 11-column format with parent-child variation hierarchies.'
+      : 'You are a professional PDF-to-Excel table parser. Extract tabular structures, financial reports, order sheets, invoices, and ledgers into clean Excel-ready headers and row arrays.';
+
+    const contents: any[] = [
+      {
+        inlineData: {
+          data: fileBase64,
+          mimeType: mimeType || 'application/pdf',
+        },
+      },
+      promptText,
+    ];
+
+    const responseSchema = {
+      type: Type.OBJECT,
+      properties: {
+        documentTitle: { type: Type.STRING },
+        sheets: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              sheetName: { type: Type.STRING },
+              headers: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
+              rows: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.ARRAY,
+                  items: { type: Type.STRING },
+                },
+              },
+            },
+            required: ['sheetName', 'headers', 'rows'],
+          },
+        },
+      },
+      required: ['sheets'],
+    };
+
+    let response = null;
+    const models = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+
+    for (const m of models) {
+      try {
+        const resp = await ai.models.generateContent({
+          model: m,
+          contents,
+          config: {
+            responseMimeType: 'application/json',
+            responseSchema,
+            systemInstruction,
+          },
+        });
+        if (resp && resp.text) {
+          response = JSON.parse(resp.text);
+          break;
+        }
+      } catch (err) {
+        console.warn(`Model ${m} failed for PDF-to-Excel:`, err);
+      }
+    }
+
+    if (!response || !response.sheets || response.sheets.length === 0) {
+      return res.status(422).json({
+        success: false,
+        error: 'Could not extract tables from this file. Please verify that the PDF contains tabular text or data.',
+      });
+    }
+
+    return res.json({
+      success: true,
+      documentTitle: response.documentTitle || (fileName ? fileName.replace(/\.[^/.]+$/, '') : 'Document'),
+      sheets: response.sheets,
+    });
+  } catch (err: any) {
+    console.error('PDF to Excel extraction error:', err);
+    return res.status(500).json({
+      success: false,
+      error: err?.message || 'Server error while converting PDF to Excel.',
+    });
+  }
+});
+
 // Translate / Localize existing menu rows endpoint
 app.post('/api/translate-menu', async (req, res) => {
   try {

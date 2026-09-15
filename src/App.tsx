@@ -7,6 +7,7 @@ import { StatsCards } from './components/StatsCards';
 import { ApiKeyModal } from './components/ApiKeyModal';
 import { MenuItemRow, SiteStats, MenuOutputLanguage, TopTabType } from './types';
 import { PdfToExcelView } from './components/PdfToExcelView';
+import { PdfImageEditorView } from './components/PdfImageEditorView';
 import {
   extractMenuData,
   translateMenuData,
@@ -325,6 +326,8 @@ export default function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1 w-full space-y-6">
         {activeTopTab === 'pdf-to-excel' ? (
           <PdfToExcelView onShowToast={showToast} />
+        ) : activeTopTab === 'pdf-image-editor' ? (
+          <PdfImageEditorView onShowToast={showToast} />
         ) : (
           <>
             {/* Step 1: Prominent Output Language Selection (Hindi, Gujarati, Marathi, English, Hinglish) */}

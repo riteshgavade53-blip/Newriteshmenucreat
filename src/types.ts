@@ -120,7 +120,7 @@ export interface SamplePreset {
   defaultRows: MenuItemRow[];
 }
 
-export type TopTabType = 'pos-menu' | 'pdf-to-excel';
+export type TopTabType = 'pos-menu' | 'pdf-to-excel' | 'pdf-image-editor';
 
 export interface PdfTableSheet {
   sheetName: string;

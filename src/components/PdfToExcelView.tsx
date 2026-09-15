@@ -17,6 +17,7 @@ import {
   Filter,
   Globe,
   ExternalLink,
+  Maximize2,
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import {
@@ -46,6 +47,10 @@ export const PdfToExcelView: React.FC<PdfToExcelViewProps> = ({ onShowToast }) =
   const [cleanCharsEnabled, setCleanCharsEnabled] = useState<boolean>(false);
   const [showCode, setShowCode] = useState<boolean>(false);
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
+  const [viewMode, setViewMode] = useState<'live-app' | 'builtin'>('live-app');
+  const [iframeKey, setIframeKey] = useState<number>(0);
+  const [isIframeLoading, setIsIframeLoading] = useState<boolean>(true);
+  const targetUrl = 'https://newriteshpdttoexcel.vercel.app/';
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -307,26 +312,48 @@ export const PdfToExcelView: React.FC<PdfToExcelViewProps> = ({ onShowToast }) =
         {/* Top Controls Bar */}
         <div className="flex items-center justify-between gap-4 flex-wrap pb-2 border-b border-slate-800/80">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-              Live Website & Conversion Engine
-            </span>
-            <span className="text-xs text-slate-400 hidden sm:inline">
-              newriteshpdttoexcel.vercel.app
-            </span>
+            <div className="flex items-center p-1 bg-slate-900 rounded-xl border border-slate-800 gap-1 text-xs">
+              <button
+                onClick={() => setViewMode('live-app')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  viewMode === 'live-app'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Globe className="w-3.5 h-3.5" />
+                <span>Live App (newriteshpdttoexcel)</span>
+              </button>
+
+              <button
+                onClick={() => setViewMode('builtin')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  viewMode === 'builtin'
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <Table className="w-3.5 h-3.5" />
+                <span>Built-in Tool</span>
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Direct Open Website Button */}
-            <a
-              href="https://newriteshpdttoexcel.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-500 text-white transition-all shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer"
-            >
-              <Globe className="w-3.5 h-3.5" />
-              <span>Open Website Directly</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
+            {viewMode === 'live-app' && (
+              <button
+                onClick={() => {
+                  setIsIframeLoading(true);
+                  setIframeKey((k) => k + 1);
+                  onShowToast('🔄 Reloading PDF to Excel app...');
+                }}
+                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                title="Reload live app"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isIframeLoading ? 'animate-spin text-emerald-400' : ''}`} />
+                <span>Reload</span>
+              </button>
+            )}
 
             {/* Clean Excel toggle */}
             <button
@@ -360,44 +387,55 @@ export const PdfToExcelView: React.FC<PdfToExcelViewProps> = ({ onShowToast }) =
           </div>
         </div>
 
-        {/* Direct Link Banner */}
-        <div className="bg-gradient-to-r from-emerald-950 via-slate-900 to-indigo-950 border border-emerald-500/40 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center shrink-0">
-              <Globe className="w-5 h-5 text-emerald-400" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3 className="text-sm sm:text-base font-bold text-white">
-                  PDF to Excel Converter Website
-                </h3>
-                <span className="bg-emerald-500 text-slate-950 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  Live
-                </span>
+        {/* Live App Iframe Container (Default) */}
+        {viewMode === 'live-app' ? (
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col h-[750px] relative">
+            {/* Top Bar for frame */}
+            <div className="bg-slate-950 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between gap-3 text-xs">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
+                </div>
+                <div className="ml-3 px-3 py-1 bg-slate-900 border border-slate-800 rounded-lg text-slate-400 font-mono text-[11px] flex items-center gap-1.5">
+                  <Globe className="w-3 h-3 text-emerald-400" />
+                  <span>https://newriteshpdttoexcel.vercel.app/</span>
+                </div>
               </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Target URL:{' '}
+
+              <div className="flex items-center gap-2">
                 <a
-                  href="https://newriteshpdttoexcel.vercel.app/"
+                  href={targetUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-emerald-400 hover:underline font-mono"
+                  className="text-slate-400 hover:text-white flex items-center gap-1 text-[11px] font-semibold"
+                  title="Open full page in new tab if needed"
                 >
-                  https://newriteshpdttoexcel.vercel.app/
+                  <span>Full Screen</span>
+                  <Maximize2 className="w-3 h-3" />
                 </a>
-              </p>
+              </div>
             </div>
+
+            {/* Loading Overlay */}
+            {isIframeLoading && (
+              <div className="absolute inset-x-0 top-11 bottom-0 z-20 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-xs">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-500 mb-3"></div>
+                <p className="text-xs text-slate-300 font-medium">Loading PDF to Excel App...</p>
+              </div>
+            )}
+
+            <iframe
+              key={iframeKey}
+              src={targetUrl}
+              title="PDF to Excel Converter"
+              className="w-full h-full border-none bg-slate-950"
+              onLoad={() => setIsIframeLoading(false)}
+              allow="clipboard-read; clipboard-write"
+            />
           </div>
-          <a
-            href="https://newriteshpdttoexcel.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="w-full sm:w-auto px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-500/20 active:scale-95 cursor-pointer shrink-0"
-          >
-            <span>Open Website Directly</span>
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        </div>
+        ) : null}
 
         {/* Collapsible Python Code Drawer */}
         {showCode && (

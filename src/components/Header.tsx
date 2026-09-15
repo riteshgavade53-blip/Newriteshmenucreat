@@ -5,10 +5,10 @@ import {
   Key,
   CheckCircle2,
   AlertCircle,
-  Users,
   FileText,
   Sparkles,
   ExternalLink,
+  FileImage,
 } from 'lucide-react';
 import { SiteStats, TopTabType } from '../types';
 
@@ -43,31 +43,19 @@ export const Header: React.FC<HeaderProps> = ({
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-18 gap-2">
-          {/* Brand & Title */}
+          {/* Brand & Title (Always consistent Menu File Extractor) */}
           <div className="flex items-center gap-3 shrink-0">
-            <div className={`w-10 h-10 rounded-xl text-white flex items-center justify-center shadow-md transition-all ${
-              activeTab === 'pos-menu'
-                ? 'bg-gradient-to-tr from-emerald-600 to-teal-500 shadow-emerald-500/15'
-                : 'bg-gradient-to-tr from-indigo-600 to-blue-500 shadow-indigo-500/15'
-            }`}>
-              {activeTab === 'pos-menu' ? (
-                <UtensilsCrossed className="w-5 h-5" />
-              ) : (
-                <FileSpreadsheet className="w-5 h-5" />
-              )}
+            <div className="w-10 h-10 rounded-xl text-white flex items-center justify-center shadow-md bg-gradient-to-tr from-emerald-600 to-teal-500 shadow-emerald-500/15">
+              <UtensilsCrossed className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-                  {activeTab === 'pos-menu' ? 'Menu File Extractor' : 'PDF to Excel Converter'}
+                  Menu File Extractor
                 </h1>
-                <span className={`hidden lg:inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border ${
-                  activeTab === 'pos-menu'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                }`}>
+                <span className="hidden lg:inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md border bg-emerald-50 text-emerald-700 border-emerald-200">
                   <FileSpreadsheet className="w-3 h-3" />
-                  {activeTab === 'pos-menu' ? '11-Column POS Format' : 'Universal XLSX Tables'}
+                  11-Column POS Format
                 </span>
 
                 {/* Output Ready Indicator Badge */}
@@ -79,9 +67,7 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-500 hidden sm:block">
-                {activeTab === 'pos-menu'
-                  ? 'Extract dishes, variations & prices into POS Excel format'
-                  : 'Convert PDF tables, invoices & reports to editable Excel sheets'}
+                Extract dishes, variations & prices into POS Excel format
               </p>
             </div>
           </div>
@@ -108,44 +94,45 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </button>
 
-            {/* Tab 2: Pdf to Excel (Direct Open https://newriteshpdttoexcel.vercel.app/) */}
-            <a
-              href="https://newriteshpdttoexcel.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
+            {/* Tab 2: Pdf to Excel (In-App Tab Switching) */}
+            <button
               onClick={() => onSelectTab('pdf-to-excel')}
               className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'pdf-to-excel'
                   ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20 ring-2 ring-indigo-400/40 scale-102'
                   : 'text-indigo-950 bg-indigo-100 hover:bg-indigo-200/80 border border-indigo-200 hover:scale-102 shadow-xs'
               }`}
-              title="Click to open https://newriteshpdttoexcel.vercel.app/"
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-600" />
               <span>Pdf to Excel</span>
-              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-indigo-600 text-white animate-pulse">
-                New
+              <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                activeTab === 'pdf-to-excel' ? 'bg-white/25 text-white' : 'bg-indigo-600 text-white'
+              }`}>
+                Tool
               </span>
-              <ExternalLink className="w-3 h-3 text-indigo-500" />
-            </a>
+            </button>
+
+            {/* Tab 3: Pdf & Image editor (In-App Tab Switching) */}
+            <button
+              onClick={() => onSelectTab('pdf-image-editor')}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'pdf-image-editor'
+                  ? 'bg-purple-600 text-white shadow-md shadow-purple-600/20 ring-2 ring-purple-400/40 scale-102'
+                  : 'text-purple-950 bg-purple-100 hover:bg-purple-200/80 border border-purple-200 hover:scale-102 shadow-xs'
+              }`}
+            >
+              <FileImage className="w-3.5 h-3.5 text-purple-600" />
+              <span>Pdf & Image editor</span>
+              <span className={`px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                activeTab === 'pdf-image-editor' ? 'bg-white/25 text-white' : 'bg-purple-600 text-white'
+              }`}>
+                Tool
+              </span>
+            </button>
           </div>
 
-          {/* Action buttons & Stats Badges */}
+          {/* Action buttons */}
           <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Live Visitor Counter Badge */}
-            {siteStats && (
-              <div
-                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-50/80 border border-indigo-200 text-indigo-900 text-xs font-semibold shadow-2xs"
-                title={`Total Visits: ${siteStats.totalVisits} | Unique Visitors: ${siteStats.uniqueVisitors}`}
-              >
-                <Users className="w-3.5 h-3.5 text-indigo-600" />
-                <span className="font-bold">{siteStats.totalVisits}</span>
-                <span className="hidden sm:inline text-indigo-700 text-[11px]">
-                  {siteStats.totalVisits === 1 ? 'Visit' : 'Visits'}
-                </span>
-              </div>
-            )}
-
             {/* API Key Modal Button */}
             <button
               onClick={onOpenApiKeyModal}
@@ -193,24 +180,29 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </button>
 
-          <a
-            href="https://newriteshpdttoexcel.vercel.app/"
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
             onClick={() => onSelectTab('pdf-to-excel')}
-            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-2 rounded-xl text-xs font-bold transition-all ${
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
               activeTab === 'pdf-to-excel'
                 ? 'bg-indigo-600 text-white shadow-sm ring-1 ring-indigo-400'
                 : 'bg-indigo-50 text-indigo-900 border border-indigo-200'
             }`}
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-indigo-600" />
-            <span>Pdf to Excel</span>
-            <span className="px-1 py-0.2 rounded-md text-[10px] bg-indigo-600 text-white font-bold animate-pulse">
-              New
-            </span>
-            <ExternalLink className="w-3 h-3 text-indigo-500" />
-          </a>
+            <FileSpreadsheet className="w-3 h-3 text-indigo-600" />
+            <span className="truncate">Pdf to Excel</span>
+          </button>
+
+          <button
+            onClick={() => onSelectTab('pdf-image-editor')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 px-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+              activeTab === 'pdf-image-editor'
+                ? 'bg-purple-600 text-white shadow-sm ring-1 ring-purple-400'
+                : 'bg-purple-50 text-purple-900 border border-purple-200'
+            }`}
+          >
+            <FileImage className="w-3 h-3 text-purple-600" />
+            <span className="truncate">Pdf & Image</span>
+          </button>
         </div>
       </div>
     </header>
